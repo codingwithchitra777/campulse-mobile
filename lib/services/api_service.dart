@@ -37,12 +37,13 @@ class ApiService {
     throw Exception('Failed to load trades');
   }
 
-  Future<Map<String, dynamic>> addTrade(String ticker, String side, int price, int qty) async {
+  Future<Map<String, dynamic>> addTrade(String ticker, String side, int price, int qty, {int? commission}) async {
     final body = jsonEncode({
       'ticker': ticker.toUpperCase(),
       'side': side.toUpperCase(),
       'price': price,
       'qty': qty,
+      if (commission != null) 'commission': commission,
     });
     final response = await http.post(
       Uri.parse('$baseUrl/api/trades'),
@@ -52,12 +53,13 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  Future<Map<String, dynamic>> initTrade(String ticker, String side, int price, int qty) async {
+  Future<Map<String, dynamic>> initTrade(String ticker, String side, int price, int qty, {int? commission}) async {
     final body = jsonEncode({
       'ticker': ticker.toUpperCase(),
       'side': side.toUpperCase(),
       'price': price,
       'qty': qty,
+      if (commission != null) 'commission': commission,
     });
     final response = await http.post(
       Uri.parse('$baseUrl/api/trades/init'),
@@ -71,12 +73,13 @@ class ApiService {
     return decoded;
   }
 
-  Future<Map<String, dynamic>> confirmTrade(String ticker, String side, int price, int qty) async {
+  Future<Map<String, dynamic>> confirmTrade(String ticker, String side, int price, int qty, {int? commission}) async {
     final body = jsonEncode({
       'ticker': ticker.toUpperCase(),
       'side': side.toUpperCase(),
       'price': price,
       'qty': qty,
+      if (commission != null) 'commission': commission,
     });
     final response = await http.post(
       Uri.parse('$baseUrl/api/trades/confirm'),

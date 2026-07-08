@@ -20,6 +20,8 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
   final _tickerController = TextEditingController();
   final _priceController = TextEditingController();
   final _qtyController = TextEditingController();
+  final _commissionController = TextEditingController();
+  bool _isCommissionManual = false;
 
   String _side = 'BUY';
 
@@ -36,11 +38,38 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
   String? _errorMsg;
 
   @override
+  void initState() {
+    super.initState();
+    _priceController.addListener(_onPriceQtyChange);
+    _qtyController.addListener(_onPriceQtyChange);
+  }
+
+  @override
   void dispose() {
     _tickerController.dispose();
     _priceController.dispose();
     _qtyController.dispose();
+    _commissionController.dispose();
     super.dispose();
+  }
+
+  void _onPriceQtyChange() {
+    if (_isCommissionManual) {
+      setState(() {});
+      return;
+    }
+    
+    final priceText = _priceController.text;
+    final qtyText = _qtyController.text;
+    if (priceText.isNotEmpty && qtyText.isNotEmpty) {
+      final price = int.tryParse(priceText) ?? 0;
+      final qty = int.tryParse(qtyText) ?? 0;
+      final commission = (price * qty * 0.0047).round();
+      _commissionController.text = commission.toString();
+    } else {
+      _commissionController.text = '0';
+    }
+    setState(() {});
   }
 
   String _friendlyError(Object e) => e.toString().replaceFirst('Exception: ', '');
@@ -51,6 +80,7 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
     final ticker = _tickerController.text.trim().toUpperCase();
     final price = int.parse(_priceController.text);
     final qty = int.parse(_qtyController.text);
+    final commission = int.tryParse(_commissionController.text) ?? 0;
 
     setState(() {
       _loadingValidation = true;
@@ -63,7 +93,7 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
     });
 
     try {
-      final res = await _api.initTrade(ticker, _side, price, qty);
+      final res = await _api.initTrade(ticker, _side, price, qty, commission: commission);
       setState(() {
         _loadingValidation = false;
         _validationError = res['validationError'];
@@ -84,6 +114,7 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
     final ticker = _tickerController.text.trim().toUpperCase();
     final price = int.parse(_priceController.text);
     final qty = int.parse(_qtyController.text);
+    final commission = int.tryParse(_commissionController.text) ?? 0;
 
     setState(() {
       _showConfirm = false;
@@ -91,7 +122,7 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
     });
 
     try {
-      final res = await _api.confirmTrade(ticker, _side, price, qty);
+      final res = await _api.confirmTrade(ticker, _side, price, qty, commission: commission);
       setState(() {
         _successResult = res;
         _confirmSubmitting = false;
@@ -100,6 +131,8 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
       _tickerController.clear();
       _priceController.clear();
       _qtyController.clear();
+      _commissionController.clear();
+      _isCommissionManual = false;
       _formKey.currentState?.reset();
     } catch (e) {
       setState(() {
@@ -351,6 +384,85 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
                   final val = int.tryParse(v);
                   if (val == null || val <= 0) return l10n.invalidQuantity;
                   return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Commission Field
+              TextFormField(
+                controller: _commissionController,
+                decoration: const InputDecoration(
+                  labelText: 'Commission Fee (riel)',
+                  labelStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF24304F))),
+                ),
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                onChanged: (val) {
+                  setState(() {
+                    _isCommissionManual = true;
+                  });
+                },
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Commission is required';
+                  final val = int.tryParse(v);
+                  if (val == null || val < 0) return 'Invalid commission';
+                  return null;
+                },
+              ),
+
+              // Live Total Price Preview
+              Builder(
+                builder: (context) {
+                  final price = int.tryParse(_priceController.text) ?? 0;
+                  final qty = int.tryParse(_qtyController.text) ?? 0;
+                  if (price > 0 && qty > 0) {
+                    final subtotal = price * qty;
+                    final commission = int.tryParse(_commissionController.text) ?? 0;
+                    final total = _side == 'BUY' ? (subtotal + commission) : (subtotal - commission);
+                    final totalColor = _side == 'BUY' ? Colors.redAccent : emerald;
+
+                    return Container(
+                      margin: const EdgeInsets.only(top: 20, bottom: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F1422),
+                        border: Border.all(color: const Color(0xFF24304F)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Subtotal:', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                              Text('${_numberFormat.format(subtotal)} riel', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Commission:', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                              Text('${_numberFormat.format(commission)} riel', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                            ],
+                          ),
+                          const Divider(color: Color(0xFF24304F), height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Estimated Total:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                '${_numberFormat.format(total)} riel',
+                                style: TextStyle(color: totalColor, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
                 },
               ),
               const SizedBox(height: 28),
