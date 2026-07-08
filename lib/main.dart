@@ -38,7 +38,7 @@ class _CsxTradingJournalAppState extends State<CsxTradingJournalApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Trading Journal',
+      title: 'CamPulse',
       debugShowCheckedModeBanner: false,
       locale: _locale,
       localizationsDelegates: const [
