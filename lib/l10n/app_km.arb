@@ -1,0 +1,207 @@
+{
+  "@@locale": "km",
+
+  "appTitle": "សៀវភៅកត់ត្រាការជួញដូរ CSX",
+  "navDashboard": "ផ្ទាំងគ្រប់គ្រង",
+  "navPortfolio": "ផលប័ត្រ",
+  "navRecord": "កត់ត្រា",
+  "navLedger": "បញ្ជី",
+  "titleDashboard": "ផ្ទាំងគ្រប់គ្រង",
+  "titlePortfolio": "ផលប័ត្រ",
+  "titleAddTrade": "កត់ត្រាការជួញដូរ",
+  "titleTradeLedger": "បញ្ជីការជួញដូរ",
+  "languageEnglish": "English",
+  "languageKhmer": "ខ្មែរ",
+
+  "realisedPnl": "ចំណេញ/ខាតបានធ្វើ",
+  "unrealisedPnl": "ចំណេញ/ខាតមិនទាន់ធ្វើ",
+  "totalPnl": "ចំណេញ/ខាតសរុប",
+  "csxStockPrices": "📈 តម្លៃភាគហ៊ុន CSX",
+  "noPricesAvailable": "មិនមានទិន្នន័យតម្លៃ",
+  "topTickers": "🏆 ភាគហ៊ុនកំពូល",
+  "topOrders": "🥇 ការជួញដូរកំពូល",
+  "noRankData": "គ្មានទិន្នន័យចំណាត់ថ្នាក់",
+  "errorLoadingDashboard": "កំហុសក្នុងការផ្ទុកទិន្នន័យ៖ {error}",
+  "@errorLoadingDashboard": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "priceLabel": "តម្លៃ៖ {price} រៀល",
+  "@priceLabel": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+
+  "noActivePositions": "មិនមានចំណុះបច្ចុប្បន្នទេ។\nសាកល្បងកត់ត្រាការទិញមួយ!",
+  "remainingShares": "នៅសល់៖ {qty} ភាគហ៊ុន",
+  "@remainingShares": {
+    "placeholders": { "qty": { "type": "String" } }
+  },
+  "soldPercentLabel": "បានលក់៖ {percent}%",
+  "@soldPercentLabel": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "errorLoadingPortfolio": "កំហុសក្នុងការផ្ទុកផលប័ត្រ៖ {error}",
+  "@errorLoadingPortfolio": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "recordNewTrade": "➕ កត់ត្រាការជួញដូរថ្មី",
+  "tickerSymbolLabel": "និមិត្តសញ្ញាភាគហ៊ុន",
+  "tickerSymbolHint": "ឧ. ABC",
+  "tickerRequired": "ត្រូវការនិមិត្តសញ្ញាភាគហ៊ុន",
+  "sideBuy": "ទិញ",
+  "sideSell": "លក់",
+  "pricePerShareRielLabel": "តម្លៃមួយឯកតា (រៀល)",
+  "pricePerShareHint": "ឧ. 7300",
+  "priceRequired": "ត្រូវការតម្លៃ",
+  "invalidPrice": "តម្លៃមិនត្រឹមត្រូវ",
+  "quantitySharesLabel": "ចំនួន (ភាគហ៊ុន)",
+  "quantityHint": "ឧ. 100",
+  "quantityRequired": "ត្រូវការចំនួន",
+  "invalidQuantity": "ចំនួនមិនត្រឹមត្រូវ",
+  "confirmSide": "បញ្ជាក់ {side}",
+  "@confirmSide": {
+    "placeholders": { "side": { "type": "String" } }
+  },
+  "validating": "កំពុងផ្ទៀងផ្ទាត់...",
+  "errorPrefix": "កំហុស៖ {message}",
+  "@errorPrefix": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "tradeConfirmedTitle": "ការជួញដូរបានបញ្ជាក់!",
+  "recordedSummary": "បានកត់ត្រា {qty} ភាគហ៊ុននៃ {ticker} ក្នុងតម្លៃ {price} រៀល។",
+  "@recordedSummary": {
+    "placeholders": {
+      "qty": { "type": "String" },
+      "ticker": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "warningPrefix": "ការព្រមាន៖ {message}",
+  "@warningPrefix": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "lifoMatchedLots": "📦 ឡូតបានផ្គូផ្គង (LIFO)៖",
+  "matchedLotLine": "បានផ្គូផ្គង {qty} ភាគហ៊ុនពីឡូតទិញក្នុងតម្លៃ {price} រៀល។",
+  "@matchedLotLine": {
+    "placeholders": {
+      "qty": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "realisedProfitLossLabel": "ចំណេញ/ខាតបានធ្វើ៖ {value} រៀល",
+  "@realisedProfitLossLabel": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+
+  "validationErrorTitle": "⚠️ កំហុសក្នុងការផ្ទៀងផ្ទាត់",
+  "confirmTransactionTitle": "🔔 បញ្ជាក់ប្រតិបត្តិការ",
+  "validationFailedPrefix": "ការផ្ទៀងផ្ទាត់បរាជ័យ៖ {message}",
+  "@validationFailedPrefix": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "adjustParametersHint": "សូមកែសម្រួលប៉ារ៉ាម៉ែត្រការជួញដូររបស់អ្នក។",
+  "returnToEdit": "✕ ត្រឡប់ទៅកែសម្រួល",
+  "stockTickerLabel": "និមិត្តសញ្ញាភាគហ៊ុន",
+  "actionLabel": "សកម្មភាព",
+  "quantityRowLabel": "ចំនួន",
+  "quantityValue": "{qty} ភាគហ៊ុន",
+  "@quantityValue": {
+    "placeholders": { "qty": { "type": "String" } }
+  },
+  "pricePerShareValueLabel": "តម្លៃមួយឯកតា",
+  "estimatedTotalLabel": "សរុបប៉ាន់ស្មាន",
+  "simulatedPnlLabel": "ចំណេញ/ខាតប៉ាន់ស្មាន (បន្ទាប់ពីកម្រៃ)",
+  "sellLossWarningTitle": "⚠️ ការព្រមាន៖ លក់ខាត!",
+  "sellLossWarningBody": "ការអនុវត្តប្រតិបត្តិការនេះនឹងបណ្តាលឱ្យខាតជាក់ស្តែង {amount} រៀល ដោយផ្អែកលើការផ្គូផ្គង LIFO។",
+  "@sellLossWarningBody": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "cancel": "បោះបង់",
+  "yesSubmitTrade": "បាទ/ចាស ដាក់ស្នើការជួញដូរ",
+
+  "noTradesRecorded": "មិនទាន់មានការជួញដូរបានកត់ត្រានៅឡើយទេ។",
+  "pricePerShareColumn": "តម្លៃមួយឯកតា",
+  "quantityColumn": "ចំនួន",
+  "commissionColumn": "កម្រៃជើងសា",
+  "errorLoadingHistory": "កំហុសក្នុងការផ្ទុកប្រវត្តិ៖ {error}",
+  "@errorLoadingHistory": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "detailsTitle": "លម្អិត {ticker}",
+  "@detailsTitle": {
+    "placeholders": { "ticker": { "type": "String" } }
+  },
+  "failedToLoadDetails": "បរាជ័យក្នុងការផ្ទុកព័ត៌មានលម្អិត",
+  "totalBought": "ទិញសរុប",
+  "totalSold": "លក់សរុប",
+  "remaining": "នៅសល់",
+  "realisedPnlLabel": "ចំណេញ/ខាតដែលបានដឹង",
+  "buyOrdersTitle": "📈 ការបញ្ជាទិញ (លំដាប់ LIFO)",
+  "sellOrdersTitle": "ការបញ្ជាលក់",
+  "noBuyOrders": "គ្មានការបញ្ជាទិញទេ។",
+  "noSellOrders": "គ្មានការបញ្ជាលក់ទេ។",
+  "openSeqLabel": "កំពុងបើក #{seq}",
+  "@openSeqLabel": {
+    "placeholders": { "seq": { "type": "String" } }
+  },
+  "soldSeqLabel": "បានលក់ #{seq}",
+  "@soldSeqLabel": {
+    "placeholders": { "seq": { "type": "String" } }
+  },
+  "qtyAtPrice": "{qty}@{price}",
+  "@qtyAtPrice": {
+    "placeholders": {
+      "qty": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "matchedRow": "↳ ផ្គូផ្គង #{seq}៖ {qty}@{price}",
+  "@matchedRow": {
+    "placeholders": {
+      "seq": { "type": "String" },
+      "qty": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "buyLotsAllocation": "📥 ឡូតទិញ (ការបែងចែក LIFO)",
+  "seqLabel": "លេខរៀង #{seq}",
+  "@seqLabel": {
+    "placeholders": { "seq": { "type": "String" } }
+  },
+  "lotOpen": "នៅបើក",
+  "lotSold": "បានលក់",
+  "remainingQtyLabel": "ចំនួននៅសល់",
+  "qtyOverQty": "{open} / {original} ភាគហ៊ុន",
+  "@qtyOverQty": {
+    "placeholders": {
+      "open": { "type": "String" },
+      "original": { "type": "String" }
+    }
+  },
+  "noOpenLots": "គ្មានឡូតបើកនៅសល់ទេ។",
+  "errorLoadingPosition": "កំហុសក្នុងការផ្ទុកព័ត៌មានចំណុះ៖ {error}",
+  "@errorLoadingPosition": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "authRequiredTitle": "ត្រូវការចូលគណនី",
+  "authRequiredDesc": "ដើម្បីមើលប៉ូស៊ីស្យុងសកម្មរបស់អ្នក កត់ត្រាប្រតិបត្តិការថ្មី ឬចូលមើលប្រវត្តិកំណត់ហេតុជួញដូររបស់អ្នក សូមចូលគណនីដោយប្រើ Google។",
+  "authFeatureLifo": "ការផ្គូផ្គងតម្លៃដើមតាមបែប LIFO៖ ការបែងចែកភាគហ៊ុនតាមឡូតពន្ធដោយស្វ័យប្រវត្តិ។",
+  "authFeaturePosition": "ការបំបែកប៉ូស៊ីស្យុង៖ តម្លៃដើមមធ្យមនៅសល់ក្នុងមួយហ៊ុន។",
+  "authFeatureSync": "ការធ្វើសមកាលកម្មតាមពេលវេលាជាក់ស្តែង៖ ប្រើ Backend រួមគ្នាជាមួយ Telegram Bot។",
+  "signInWithGoogle": "ចូលគណនីជាមួយ Google",
+  "continueAsGuestDemo": "ឬបន្តជាភ្ញៀវដោយប្រើគណនីសាកល្បង (សបាយ)",
+  "guestLabel": "ភ្ញៀវ",
+  "logout": "ចាកចេញ",
+  "lastPriceLabel": "តម្លៃចុងក្រោយ៖ {price}",
+  "@lastPriceLabel": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "avgCostLabel": "តម្លៃដើមមធ្យម៖ {price}",
+  "@avgCostLabel": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "personalizedAnalyticsLocked": "ការវិភាគផ្ទាល់ខ្លួន",
+  "personalizedAnalyticsLockedDesc": "ចូលគណនីជាមួយ Google របស់អ្នកដើម្បីកត់ត្រាប្រតិបត្តិការ តាមដានប្រាក់ចំណេញ/ខាតដែលបានដឹង និងមិនទាន់ដឹង និងមើលឡូតដែលបានផ្គូផ្គង។"
+}

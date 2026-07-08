@@ -1,0 +1,207 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Trading Journal",
+  "navDashboard": "Dashboard",
+  "navPortfolio": "Portfolio",
+  "navRecord": "Record",
+  "navLedger": "Ledger",
+  "titleDashboard": "Dashboard",
+  "titlePortfolio": "Portfolio",
+  "titleAddTrade": "Add Trade",
+  "titleTradeLedger": "Trade Ledger",
+  "languageEnglish": "English",
+  "languageKhmer": "ខ្មែរ",
+
+  "realisedPnl": "Realised P/L",
+  "unrealisedPnl": "Unrealised P/L",
+  "totalPnl": "Total P/L",
+  "csxStockPrices": "📈 CSX Stock Prices",
+  "noPricesAvailable": "No prices available",
+  "topTickers": "🏆 Top Tickers",
+  "topOrders": "🥇 Top Orders",
+  "noRankData": "No rank data",
+  "errorLoadingDashboard": "Error loading dashboard: {error}",
+  "@errorLoadingDashboard": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "priceLabel": "Price: {price} riel",
+  "@priceLabel": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+
+  "noActivePositions": "No active positions.\nTry recording a BUY trade!",
+  "remainingShares": "Remaining: {qty} shares",
+  "@remainingShares": {
+    "placeholders": { "qty": { "type": "String" } }
+  },
+  "soldPercentLabel": "Sold: {percent}%",
+  "@soldPercentLabel": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "errorLoadingPortfolio": "Error loading portfolio: {error}",
+  "@errorLoadingPortfolio": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "recordNewTrade": "➕ Record New Trade",
+  "tickerSymbolLabel": "Ticker Symbol",
+  "tickerSymbolHint": "e.g. ABC",
+  "tickerRequired": "Ticker required",
+  "sideBuy": "BUY",
+  "sideSell": "SELL",
+  "pricePerShareRielLabel": "Price per Share (riel)",
+  "pricePerShareHint": "e.g. 7300",
+  "priceRequired": "Price required",
+  "invalidPrice": "Invalid price",
+  "quantitySharesLabel": "Quantity (shares)",
+  "quantityHint": "e.g. 100",
+  "quantityRequired": "Quantity required",
+  "invalidQuantity": "Invalid quantity",
+  "confirmSide": "Confirm {side}",
+  "@confirmSide": {
+    "placeholders": { "side": { "type": "String" } }
+  },
+  "validating": "Validating...",
+  "errorPrefix": "Error: {message}",
+  "@errorPrefix": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "tradeConfirmedTitle": "Trade Confirmed!",
+  "recordedSummary": "Recorded {qty} shares of {ticker} @ {price} riel.",
+  "@recordedSummary": {
+    "placeholders": {
+      "qty": { "type": "String" },
+      "ticker": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "warningPrefix": "Warning: {message}",
+  "@warningPrefix": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "lifoMatchedLots": "📦 LIFO Matched Lots:",
+  "matchedLotLine": "Matched {qty} shares from Buy lot @ {price} riel.",
+  "@matchedLotLine": {
+    "placeholders": {
+      "qty": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "realisedProfitLossLabel": "Realised Profit/Loss: {value} riel",
+  "@realisedProfitLossLabel": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+
+  "validationErrorTitle": "⚠️ Validation Error",
+  "confirmTransactionTitle": "🔔 Confirm Transaction",
+  "validationFailedPrefix": "Validation Failed: {message}",
+  "@validationFailedPrefix": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "adjustParametersHint": "Please adjust your trade parameters.",
+  "returnToEdit": "✕ Return to Edit",
+  "stockTickerLabel": "STOCK TICKER",
+  "actionLabel": "ACTION",
+  "quantityRowLabel": "QUANTITY",
+  "quantityValue": "{qty} shares",
+  "@quantityValue": {
+    "placeholders": { "qty": { "type": "String" } }
+  },
+  "pricePerShareValueLabel": "PRICE PER SHARE",
+  "estimatedTotalLabel": "ESTIMATED TOTAL",
+  "simulatedPnlLabel": "Simulated P/L (Net of Fees)",
+  "sellLossWarningTitle": "⚠️ Warning: Sell at a Loss!",
+  "sellLossWarningBody": "Executing this transaction will result in a realized loss of {amount} riel on a LIFO matching basis.",
+  "@sellLossWarningBody": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "cancel": "Cancel",
+  "yesSubmitTrade": "Yes, Submit Trade",
+
+  "noTradesRecorded": "No trades recorded yet.",
+  "pricePerShareColumn": "Price per Share",
+  "quantityColumn": "Quantity",
+  "commissionColumn": "Commission",
+  "errorLoadingHistory": "Error loading history: {error}",
+  "@errorLoadingHistory": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "detailsTitle": "{ticker} Details",
+  "@detailsTitle": {
+    "placeholders": { "ticker": { "type": "String" } }
+  },
+  "failedToLoadDetails": "Failed to load details",
+  "totalBought": "Total Bought",
+  "totalSold": "Total Sold",
+  "remaining": "Remaining",
+  "realisedPnlLabel": "Realised P/L",
+  "buyOrdersTitle": "📈 Buy Orders (LIFO Queue)",
+  "sellOrdersTitle": "Sell Orders",
+  "noBuyOrders": "No buy orders.",
+  "noSellOrders": "No sell orders.",
+  "openSeqLabel": "OPEN #{seq}",
+  "@openSeqLabel": {
+    "placeholders": { "seq": { "type": "String" } }
+  },
+  "soldSeqLabel": "SOLD #{seq}",
+  "@soldSeqLabel": {
+    "placeholders": { "seq": { "type": "String" } }
+  },
+  "qtyAtPrice": "{qty}@{price}",
+  "@qtyAtPrice": {
+    "placeholders": {
+      "qty": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "matchedRow": "↳ Matched #{seq}: {qty}@{price}",
+  "@matchedRow": {
+    "placeholders": {
+      "seq": { "type": "String" },
+      "qty": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+  "buyLotsAllocation": "📥 Buy Lots (LIFO Allocation)",
+  "seqLabel": "Seq #{seq}",
+  "@seqLabel": {
+    "placeholders": { "seq": { "type": "String" } }
+  },
+  "lotOpen": "Open",
+  "lotSold": "Sold",
+  "remainingQtyLabel": "Remaining Qty",
+  "qtyOverQty": "{open} / {original} shares",
+  "@qtyOverQty": {
+    "placeholders": {
+      "open": { "type": "String" },
+      "original": { "type": "String" }
+    }
+  },
+  "noOpenLots": "No open lots remaining.",
+  "errorLoadingPosition": "Error loading position details: {error}",
+  "@errorLoadingPosition": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "authRequiredTitle": "Authentication Required",
+  "authRequiredDesc": "To view your active positions, record new transactions, or access your trade ledger history, please sign in using Google.",
+  "authFeatureLifo": "LIFO Cost Basis Matching: Automatic tax-lot allocation of shares.",
+  "authFeaturePosition": "Position Breakdown: Average remaining cost basis per share.",
+  "authFeatureSync": "Real-time Synchronization: Shared backend with Telegram Bot.",
+  "signInWithGoogle": "Sign in with Google",
+  "continueAsGuestDemo": "Or, continue as Guest using Demo Account (Sabay)",
+  "guestLabel": "Guest",
+  "logout": "Logout",
+  "lastPriceLabel": "Last: {price}",
+  "@lastPriceLabel": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "avgCostLabel": "Avg Cost: {price}",
+  "@avgCostLabel": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "personalizedAnalyticsLocked": "Personalized Analytics",
+  "personalizedAnalyticsLockedDesc": "Sign in with your Google account to record trades, track your realised and unrealised profits, and see matching lots."
+}
