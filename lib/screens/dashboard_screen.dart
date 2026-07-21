@@ -111,39 +111,117 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildExchangeRateHeader(l10n),
-            const SizedBox(height: 16),
-            
-            if (!AuthService.instance.isGuest) ...[
-              _buildValuationToggle(l10n),
-              const SizedBox(height: 16),
-              _buildPortfolioSummary(l10n, numberFormat, theme),
-              const SizedBox(height: 24),
-              _buildChartSection(l10n.portfolioPerformance, _buildPortfolioChart()),
-            ] else
-              _buildLockedPrompt(l10n),
-              
-            const SizedBox(height: 24),
-            _buildChartSection(l10n.exchangeRateTrend, _buildExchangeRateChart()),
-            const SizedBox(height: 24),
-            _buildChartSection(l10n.goldPriceTrend, _buildGoldChart()),
-            const SizedBox(height: 24),
-            
-            if (!AuthService.instance.isGuest) ...[
-              Text(
-                l10n.marketMovers,
-                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              _buildMarketMovers(l10n, numberFormat),
+        child: AuthService.instance.isGuest
+            ? _buildGuestState(l10n, textTheme)
+            : _buildAuthenticatedState(l10n, numberFormat, theme, textTheme),
+      ),
+    );
+  }
+
+  Widget _buildGuestState(AppLocalizations l10n, TextTheme textTheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(25),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('🔐 Secure, Local-First Trading Journal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ],
-            const SizedBox(height: 80), // Padding for scrolling
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Take Control of Your\nCSX Investments',
+          textAlign: TextAlign.center,
+          style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Track your portfolio, calculate precise LIFO profits, and sync effortlessly across devices.',
+          textAlign: TextAlign.center,
+          style: textTheme.bodyLarge?.copyWith(color: Colors.grey),
+        ),
+        const SizedBox(height: 32),
+        Row(
+          children: [
+            Expanded(
+              child: Card(
+                color: const Color(0xFF151B2C),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF24304F))),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const Text('📊', style: TextStyle(fontSize: 24)),
+                      const SizedBox(height: 8),
+                      Text('Live Prices', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text('CSX & Gold feeds', textAlign: TextAlign.center, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Card(
+                color: const Color(0xFF151B2C),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF24304F))),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const Text('📦', style: TextStyle(fontSize: 24)),
+                      const SizedBox(height: 8),
+                      Text('LIFO Matching', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text('Precise profit tracking', textAlign: TextAlign.center, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: 40),
+        _buildLockedPrompt(l10n),
+        const SizedBox(height: 80),
+      ],
+    );
+  }
+
+  Widget _buildAuthenticatedState(AppLocalizations l10n, NumberFormat numberFormat, ThemeData theme, TextTheme textTheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildExchangeRateHeader(l10n),
+        const SizedBox(height: 16),
+        _buildValuationToggle(l10n),
+        const SizedBox(height: 16),
+        _buildPortfolioSummary(l10n, numberFormat, theme),
+        const SizedBox(height: 24),
+        _buildChartSection(l10n.portfolioPerformance, _buildPortfolioChart()),
+        const SizedBox(height: 24),
+        _buildChartSection(l10n.exchangeRateTrend, _buildExchangeRateChart()),
+        const SizedBox(height: 24),
+        _buildChartSection(l10n.goldPriceTrend, _buildGoldChart()),
+        const SizedBox(height: 24),
+        Text(
+          l10n.marketMovers,
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        _buildMarketMovers(l10n, numberFormat),
+        const SizedBox(height: 80),
+      ],
     );
   }
 
