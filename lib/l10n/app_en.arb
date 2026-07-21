@@ -21,6 +21,20 @@
   "topTickers": "🏆 Top Tickers",
   "topOrders": "🥇 Top Orders",
   "noRankData": "No rank data",
+  "portfolioValue": "Portfolio Value",
+  "todaysGain": "Today's Gain",
+  "totalReturn": "Total Return",
+  "portfolioPerformance": "Portfolio Performance",
+  "exchangeRateTrend": "Exchange Rate Trend",
+  "goldPriceTrend": "Gold Price Trend",
+  "marketMovers": "Market Movers",
+  "recentTrades": "Recent Trades",
+  "valuationBid": "Bid",
+  "valuationAsk": "Ask",
+  "allMarkets": "All Markets",
+  "csxMarket": "CSX",
+  "goldMarket": "Gold",
+  "usaMarket": "USA",
   "errorLoadingDashboard": "Error loading dashboard: {error}",
   "@errorLoadingDashboard": {
     "placeholders": { "error": { "type": "String" } }
@@ -203,5 +217,52 @@
     "placeholders": { "price": { "type": "String" } }
   },
   "personalizedAnalyticsLocked": "Personalized Analytics",
-  "personalizedAnalyticsLockedDesc": "Sign in with your Google account to record trades, track your realised and unrealised profits, and see matching lots."
+  "personalizedAnalyticsLockedDesc": "Sign in with your Google account to record trades, track your realised and unrealised profits, and see matching lots.",
+
+  "navLoanCalc": "Loan Calculator",
+  "loanTitle": "Loan Calculator",
+  "loanSubtitle": "Plan a loan and see the full repayment schedule before you sign.",
+  "loanAmount": "Loan amount",
+  "loanCurrency": "Currency",
+  "loanRate": "Interest rate",
+  "loanPerMonth": "% per month",
+  "loanPerYear": "% per year",
+  "loanTerm": "Term (months)",
+  "loanMethod": "Interest method",
+  "loanMethodDeclining": "Declining balance",
+  "loanMethodFlat": "Flat rate",
+  "loanMethodDecliningDesc": "Interest is charged on what you still owe (EMI) — the true cost of the loan.",
+  "loanMethodFlatDesc": "Interest is charged on the original amount every month — how most Cambodian banks and MFIs quote.",
+  "loanStartDate": "Loan start date",
+  "loanCalc": "Generate schedule",
+  "loanSummary": "Loan Summary",
+  "loanMonthlyPayment": "MONTHLY PAYMENT",
+  "loanTotalInterest": "TOTAL INTEREST",
+  "loanTotalRepay": "TOTAL REPAYMENT",
+  "loanCmpFlatSelected": "On declining balance, the same loan would cost {other} in interest — {diff} less than this flat quote.",
+  "@loanCmpFlatSelected": {
+    "placeholders": {
+      "other": { "type": "String" },
+      "diff": { "type": "String" }
+    }
+  },
+  "loanCmpDecliningSelected": "Quoted as a flat rate, the same numbers would cost {other} in interest — {diff} more.",
+  "@loanCmpDecliningSelected": {
+    "placeholders": {
+      "other": { "type": "String" },
+      "diff": { "type": "String" }
+    }
+  },
+  "loanSchedule": "Repayment Schedule",
+  "loanColNo": "#",
+  "loanColDate": "Due date",
+  "loanColPayment": "Payment",
+  "loanColPrincipal": "Principal",
+  "loanColInterest": "Interest",
+  "loanColBalance": "Balance",
+  "loanExportCsv": "Export CSV",
+  "loanDisclaimer": "Estimates only — actual lender schedules, fees and rounding may differ.",
+  "loanErrInvalid": "Enter a valid amount, rate and term.",
+  "loanErrTerm": "Term is limited to 480 months.",
+  "loanEmpty": "Fill in the loan details and generate the schedule."
 }

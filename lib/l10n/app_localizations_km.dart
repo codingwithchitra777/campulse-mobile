@@ -66,6 +66,48 @@ class AppLocalizationsKm extends AppLocalizations {
   String get noRankData => 'គ្មានទិន្នន័យចំណាត់ថ្នាក់';
 
   @override
+  String get portfolioValue => 'តម្លៃផលប័ត្រ';
+
+  @override
+  String get todaysGain => 'ប្រាក់ចំណេញថ្ងៃនេះ';
+
+  @override
+  String get totalReturn => 'ប្រាក់ចំណេញសរុប';
+
+  @override
+  String get portfolioPerformance => 'ដំណើរការផលប័ត្រ';
+
+  @override
+  String get exchangeRateTrend => 'និន្នាការអត្រាប្តូរប្រាក់';
+
+  @override
+  String get goldPriceTrend => 'និន្នាការតម្លៃមាស';
+
+  @override
+  String get marketMovers => 'ភាគហ៊ុនដែលមានចលនាខ្លាំង';
+
+  @override
+  String get recentTrades => 'ការជួញដូរថ្មីៗ';
+
+  @override
+  String get valuationBid => 'ទិញចូល (Bid)';
+
+  @override
+  String get valuationAsk => 'លក់ចេញ (Ask)';
+
+  @override
+  String get allMarkets => 'ទីផ្សារទាំងអស់';
+
+  @override
+  String get csxMarket => 'CSX';
+
+  @override
+  String get goldMarket => 'មាស';
+
+  @override
+  String get usaMarket => 'អាមេរិក';
+
+  @override
   String errorLoadingDashboard(String error) {
     return 'កំហុសក្នុងការផ្ទុកទិន្នន័យ៖ $error';
   }
@@ -376,4 +418,114 @@ class AppLocalizationsKm extends AppLocalizations {
   @override
   String get personalizedAnalyticsLockedDesc =>
       'ចូលគណនីជាមួយ Google របស់អ្នកដើម្បីកត់ត្រាប្រតិបត្តិការ តាមដានប្រាក់ចំណេញ/ខាតដែលបានដឹង និងមិនទាន់ដឹង និងមើលឡូតដែលបានផ្គូផ្គង។';
+
+  @override
+  String get navLoanCalc => 'គណនាកម្ចី';
+
+  @override
+  String get loanTitle => 'កម្មវិធីគណនាកម្ចី';
+
+  @override
+  String get loanSubtitle =>
+      'គ្រោងកម្ចី និងមើលតារាងសងប្រាក់ពេញលេញ មុនពេលចុះហត្ថលេខា។';
+
+  @override
+  String get loanAmount => 'ចំនួនកម្ចី';
+
+  @override
+  String get loanCurrency => 'រូបិយប័ណ្ណ';
+
+  @override
+  String get loanRate => 'អត្រាការប្រាក់';
+
+  @override
+  String get loanPerMonth => '% ក្នុងមួយខែ';
+
+  @override
+  String get loanPerYear => '% ក្នុងមួយឆ្នាំ';
+
+  @override
+  String get loanTerm => 'រយៈពេល (ខែ)';
+
+  @override
+  String get loanMethod => 'វិធីគណនាការប្រាក់';
+
+  @override
+  String get loanMethodDeclining => 'សមតុល្យថយចុះ';
+
+  @override
+  String get loanMethodFlat => 'អត្រាថេរ';
+
+  @override
+  String get loanMethodDecliningDesc =>
+      'ការប្រាក់គិតលើសមតុល្យនៅសល់ (EMI) — តម្លៃពិតប្រាកដនៃកម្ចី។';
+
+  @override
+  String get loanMethodFlatDesc =>
+      'ការប្រាក់គិតលើប្រាក់ដើមដំបូងរាល់ខែ — របៀបដែលធនាគារ និងគ្រឹះស្ថានមីក្រូហិរញ្ញវត្ថុកម្ពុជាភាគច្រើនប្រកាស។';
+
+  @override
+  String get loanStartDate => 'កាលបរិច្ឆេទចាប់ផ្តើមកម្ចី';
+
+  @override
+  String get loanCalc => 'បង្កើតតារាងសង';
+
+  @override
+  String get loanSummary => 'សង្ខេបកម្ចី';
+
+  @override
+  String get loanMonthlyPayment => 'បង់ប្រចាំខែ';
+
+  @override
+  String get loanTotalInterest => 'ការប្រាក់សរុប';
+
+  @override
+  String get loanTotalRepay => 'សងសរុប';
+
+  @override
+  String loanCmpFlatSelected(String other, String diff) {
+    return 'បើគណនាតាមសមតុល្យថយចុះ កម្ចីដដែលនេះត្រូវការការប្រាក់ $other — តិចជាងអត្រាថេរ $diff។';
+  }
+
+  @override
+  String loanCmpDecliningSelected(String other, String diff) {
+    return 'បើប្រកាសជាអត្រាថេរ តួលេខដដែលនេះត្រូវការការប្រាក់ $other — ច្រើនជាង $diff។';
+  }
+
+  @override
+  String get loanSchedule => 'តារាងសងប្រាក់';
+
+  @override
+  String get loanColNo => '#';
+
+  @override
+  String get loanColDate => 'កាលបរិច្ឆេទ';
+
+  @override
+  String get loanColPayment => 'បង់';
+
+  @override
+  String get loanColPrincipal => 'ប្រាក់ដើម';
+
+  @override
+  String get loanColInterest => 'ការប្រាក់';
+
+  @override
+  String get loanColBalance => 'សមតុល្យ';
+
+  @override
+  String get loanExportCsv => 'ទាញយក CSV';
+
+  @override
+  String get loanDisclaimer =>
+      'គ្រាន់តែជាការប៉ាន់ស្មាន — តារាងពិតរបស់អ្នកឱ្យខ្ចី ថ្លៃសេវា និងការបង្គត់អាចខុសគ្នា។';
+
+  @override
+  String get loanErrInvalid => 'សូមបញ្ចូលចំនួន អត្រា និងរយៈពេលឱ្យត្រឹមត្រូវ។';
+
+  @override
+  String get loanErrTerm => 'រយៈពេលកំណត់ត្រឹម ៤៨០ ខែ។';
+
+  @override
+  String get loanEmpty => 'បំពេញព័ត៌មានកម្ចី រួចបង្កើតតារាងសង។';
 }

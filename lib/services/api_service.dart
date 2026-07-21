@@ -104,8 +104,11 @@ class ApiService {
     throw Exception('Failed to load position details');
   }
 
-  Future<List<dynamic>> getPortfolio() async {
-    final response = await http.get(Uri.parse('$baseUrl/api/portfolio'), headers: _headers);
+  Future<List<dynamic>> getPortfolio({String valuationMode = 'BID'}) async {
+    final uri = Uri.parse('$baseUrl/api/portfolio').replace(queryParameters: {
+      'valuationMode': valuationMode,
+    });
+    final response = await http.get(uri, headers: _headers);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -139,5 +142,59 @@ class ApiService {
       throw Exception(decoded['detail'] ?? 'Google sign-in failed');
     }
     return decoded;
+  }
+
+  Future<Map<String, dynamic>> getChartsTimeline(String? market, String? targetCurrency, String valuationMode) async {
+    final queryParams = <String, String>{};
+    if (market != null && market.isNotEmpty && market != 'ALL') {
+      queryParams['market'] = market;
+    }
+    if (targetCurrency != null && targetCurrency.isNotEmpty) {
+      queryParams['targetCurrency'] = targetCurrency;
+    }
+    queryParams['valuationMode'] = valuationMode;
+
+    final uri = Uri.parse('$baseUrl/api/charts/timeline').replace(queryParameters: queryParams);
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to load charts timeline');
+  }
+
+  Future<Map<String, dynamic>> getLatestExchangeRate(String baseCurrency, String targetCurrency) async {
+    final uri = Uri.parse('$baseUrl/api/market/exchange-rates/latest').replace(queryParameters: {
+      'baseCurrency': baseCurrency,
+      'targetCurrency': targetCurrency,
+    });
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to load latest exchange rate');
+  }
+
+  Future<Map<String, dynamic>> getExchangeRateHistory(String baseCurrency, String targetCurrency, {int limit = 30}) async {
+    final uri = Uri.parse('$baseUrl/api/market/exchange-rates/history').replace(queryParameters: {
+      'baseCurrency': baseCurrency,
+      'targetCurrency': targetCurrency,
+      'limit': limit.toString(),
+    });
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to load exchange rate history');
+  }
+
+  Future<Map<String, dynamic>> getMarketPriceHistory(String symbol, {int days = 30}) async {
+    final uri = Uri.parse('$baseUrl/api/market/price-history/$symbol').replace(queryParameters: {
+      'days': days.toString(),
+    });
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to load market price history');
   }
 }

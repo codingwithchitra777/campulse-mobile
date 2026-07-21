@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -16,14 +17,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const Color emerald = Color(0xFF10B981);
   final ApiService _api = ApiService.instance;
   bool _loading = false;
-  List<dynamic> _prices = [];
+  
   List<dynamic> _topTickers = [];
-  List<dynamic> _topOrders = [];
+  
+  Map<String, dynamic>? _chartsData;
+  Map<String, dynamic>? _exchangeHistory;
+  Map<String, dynamic>? _goldHistory;
+  Map<String, dynamic>? _latestExchangeRate;
 
-  int _realisedPnl = 0;
-  int _unrealisedPnl = 0;
-  int _totalPnl = 0;
+  String _valuationMode = 'BID';
+  String _selectedMarket = 'ALL';
+  String _baseCurrency = 'KHR';
 
+  double _portfolioValue = 0;
+  double _totalReturn = 0;
+  
   @override
   void initState() {
     super.initState();
@@ -33,30 +41,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadAllData() async {
     setState(() => _loading = true);
     try {
-      final prices = await _api.getPrices();
-
+      final latestExchange = await _api.getLatestExchangeRate('USD', 'KHR');
+      final exchangeHistory = await _api.getExchangeRateHistory('USD', 'KHR');
+      final goldHistory = await _api.getMarketPriceHistory('XAU-KH');
+      
+      List<dynamic> portfolio = [];
       List<dynamic> topTickers = [];
-      List<dynamic> topOrders = [];
-      int realised = 0;
-      int unrealised = 0;
+      Map<String, dynamic>? chartsData;
+      
+      double pValue = 0;
+      double tReturn = 0;
 
       if (!AuthService.instance.isGuest) {
-        final portfolio = await _api.getPortfolio();
+        portfolio = await _api.getPortfolio(valuationMode: _valuationMode);
         topTickers = await _api.getTopTickers();
-        topOrders = await _api.getTopOrders();
+        
+        chartsData = await _api.getChartsTimeline(
+          _selectedMarket == 'ALL' ? null : _selectedMarket,
+          _baseCurrency,
+          _valuationMode,
+        );
+
         for (var holding in portfolio) {
-          realised += (holding['realisedPnl'] as num? ?? 0).toInt();
-          unrealised += (holding['unrealisedPnl'] as num? ?? 0).toInt();
+          final qty = (holding['remainingQuantity'] as num?)?.toDouble() ?? 0;
+          final price = (holding['currentPrice'] as num?)?.toDouble() ?? 0;
+          final unrealised = (holding['unrealisedPnl'] as num?)?.toDouble() ?? 0;
+          final realised = (holding['realisedPnl'] as num?)?.toDouble() ?? 0;
+          
+          pValue += (qty * price);
+          tReturn += (realised + unrealised);
         }
       }
 
       setState(() {
-        _prices = prices;
+        _latestExchangeRate = latestExchange;
+        _exchangeHistory = exchangeHistory;
+        _goldHistory = goldHistory;
+        
         _topTickers = topTickers;
-        _topOrders = topOrders;
-        _realisedPnl = realised;
-        _unrealisedPnl = unrealised;
-        _totalPnl = realised + unrealised;
+        _chartsData = chartsData;
+        _portfolioValue = pValue;
+        _totalReturn = tReturn;
+        
         _loading = false;
       });
     } catch (e) {
@@ -88,152 +114,283 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // P/L Summary Widgets (personal data — requires sign-in)
+            _buildExchangeRateHeader(l10n),
+            const SizedBox(height: 16),
+            
             if (!AuthService.instance.isGuest) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPLCard(
-                      title: l10n.realisedPnl,
-                      value: _realisedPnl,
-                      theme: theme,
-                      numberFormat: numberFormat,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildPLCard(
-                      title: l10n.unrealisedPnl,
-                      value: _unrealisedPnl,
-                      theme: theme,
-                      numberFormat: numberFormat,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildPLCard(
-                title: l10n.totalPnl,
-                value: _totalPnl,
-                theme: theme,
-                numberFormat: numberFormat,
-                isLarge: true,
-              ),
+              _buildValuationToggle(l10n),
+              const SizedBox(height: 16),
+              _buildPortfolioSummary(l10n, numberFormat, theme),
+              const SizedBox(height: 24),
+              _buildChartSection(l10n.portfolioPerformance, _buildPortfolioChart()),
             ] else
               _buildLockedPrompt(l10n),
+              
             const SizedBox(height: 24),
-
-            // Live Stock Prices Section
-            Text(
-              l10n.csxStockPrices,
-              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              color: const Color(0xFF151B2C),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFF24304F)),
-              ),
-              child: _prices.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(child: Text(l10n.noPricesAvailable)),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _prices.length,
-                      separatorBuilder: (context, index) => const Divider(color: Color(0xFF24304F)),
-                      itemBuilder: (context, index) {
-                        final p = _prices[index];
-                        final isUp = p['change_direction'] == 'up';
-                        final isDown = p['change_direction'] == 'down';
-                        final color = isUp
-                            ? emerald
-                            : isDown
-                                ? Colors.redAccent
-                                : Colors.grey;
-                        return ListTile(
-                          title: Text(
-                            p['ticker'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          subtitle: Text(
-                            l10n.priceLabel(numberFormat.format(p['price'] ?? 0)),
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isUp
-                                      ? Icons.arrow_upward
-                                      : isDown
-                                          ? Icons.arrow_downward
-                                          : Icons.arrow_forward,
-                                  color: color,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${p['change'] ?? 0}',
-                                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+            _buildChartSection(l10n.exchangeRateTrend, _buildExchangeRateChart()),
             const SizedBox(height: 24),
-
-            // Top Rankings Grid (personal data — requires sign-in)
-            if (!AuthService.instance.isGuest)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top Tickers
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.topTickers,
-                          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRankingsCard(_topTickers, isTickers: true, noRankData: l10n.noRankData, numberFormat: numberFormat),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Top Orders
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.topOrders,
-                          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRankingsCard(_topOrders, isTickers: false, noRankData: l10n.noRankData, numberFormat: numberFormat),
-                      ],
-                    ),
-                  ),
-                ],
+            _buildChartSection(l10n.goldPriceTrend, _buildGoldChart()),
+            const SizedBox(height: 24),
+            
+            if (!AuthService.instance.isGuest) ...[
+              Text(
+                l10n.marketMovers,
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 8),
+              _buildMarketMovers(l10n, numberFormat),
+            ],
+            const SizedBox(height: 80), // Padding for scrolling
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildExchangeRateHeader(AppLocalizations l10n) {
+    String rateText = '---';
+    if (_latestExchangeRate != null && _latestExchangeRate!['rate'] != null) {
+      final r = _latestExchangeRate!['rate'];
+      rateText = '${r['bidRate']} / ${r['askRate']}';
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text('USD/KHR : $rateText', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+      ],
+    );
+  }
+
+  Widget _buildValuationToggle(AppLocalizations l10n) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        ToggleButtons(
+          isSelected: [_valuationMode == 'BID', _valuationMode == 'ASK'],
+          onPressed: (index) {
+            setState(() {
+              _valuationMode = index == 0 ? 'BID' : 'ASK';
+            });
+            _loadAllData();
+          },
+          borderRadius: BorderRadius.circular(8),
+          constraints: const BoxConstraints(minHeight: 32, minWidth: 60),
+          children: [
+            Text(l10n.valuationBid),
+            Text(l10n.valuationAsk),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortfolioSummary(AppLocalizations l10n, NumberFormat nf, ThemeData theme) {
+    final isProfit = _totalReturn >= 0;
+    final color = isProfit ? emerald : Colors.redAccent;
+    
+    return Row(
+      children: [
+        Expanded(
+          child: Card(
+            color: const Color(0xFF151B2C),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF24304F)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.portfolioValue.toUpperCase(), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  Text('${nf.format(_portfolioValue)} $_baseCurrency', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Card(
+            color: const Color(0xFF151B2C),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF24304F)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.totalReturn.toUpperCase(), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  Text('${isProfit ? '+' : ''}${nf.format(_totalReturn)} $_baseCurrency', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChartSection(String title, Widget chartWidget) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Card(
+          color: const Color(0xFF151B2C),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFF24304F)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              height: 200,
+              child: chartWidget,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortfolioChart() {
+    if (_chartsData == null || _chartsData!['labels'] == null || (_chartsData!['labels'] as List).isEmpty) {
+      return const Center(child: Text('No chart data', style: TextStyle(color: Colors.grey)));
+    }
+    
+    final equity = _chartsData!['equity'] as List;
+    
+    if (equity.isEmpty) return const Center(child: Text('No equity data'));
+
+    List<FlSpot> spots = [];
+    for (int i = 0; i < equity.length; i++) {
+      spots.add(FlSpot(i.toDouble(), (equity[i] as num).toDouble()));
+    }
+
+    return _buildLineChart(spots, emerald);
+  }
+
+  Widget _buildExchangeRateChart() {
+    if (_exchangeHistory == null || _exchangeHistory!['items'] == null) {
+      return const Center(child: Text('No data'));
+    }
+    final items = _exchangeHistory!['items'] as List;
+    if (items.isEmpty) return const Center(child: Text('No data'));
+    
+    List<FlSpot> spots = [];
+    // Items are usually newest first from API, so reverse them for chart
+    final reversed = items.reversed.toList();
+    for (int i = 0; i < reversed.length; i++) {
+      final rate = (reversed[i]['bidRate'] as num?)?.toDouble() ?? 0.0;
+      spots.add(FlSpot(i.toDouble(), rate));
+    }
+
+    return _buildLineChart(spots, Colors.blue);
+  }
+
+  Widget _buildGoldChart() {
+    if (_goldHistory == null || _goldHistory!['items'] == null) {
+      return const Center(child: Text('No data'));
+    }
+    final items = _goldHistory!['items'] as List;
+    if (items.isEmpty) return const Center(child: Text('No data'));
+    
+    List<FlSpot> spots = [];
+    final reversed = items.reversed.toList();
+    for (int i = 0; i < reversed.length; i++) {
+      final price = (reversed[i]['price'] as num?)?.toDouble() ?? 0.0;
+      spots.add(FlSpot(i.toDouble(), price));
+    }
+
+    return _buildLineChart(spots, Colors.amber);
+  }
+
+  Widget _buildLineChart(List<FlSpot> spots, Color lineColor) {
+    if (spots.isEmpty) return const SizedBox.shrink();
+    
+    double minY = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
+    double maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    
+    // Add padding to Y axis
+    final padding = (maxY - minY) * 0.1;
+    if (padding == 0) {
+      minY -= 10;
+      maxY += 10;
+    } else {
+      minY -= padding;
+      maxY += padding;
+    }
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: (spots.length - 1).toDouble(),
+        minY: minY,
+        maxY: maxY,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: lineColor,
+            barWidth: 2,
+            isStrokeCapRound: true,
+            dotData: FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: lineColor.withAlpha(26), // 10% opacity
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarketMovers(AppLocalizations l10n, NumberFormat nf) {
+    return Card(
+      color: const Color(0xFF151B2C),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFF24304F)),
+      ),
+      child: _topTickers.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text(l10n.noRankData, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              ),
+            )
+          : ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _topTickers.length > 5 ? 5 : _topTickers.length,
+              separatorBuilder: (context, index) => const Divider(color: Color(0xFF24304F), height: 1),
+              itemBuilder: (context, index) {
+                final item = _topTickers[index];
+                final name = item['ticker'] ?? '';
+                final pnl = item['realisedPnl'] ?? 0;
+                return ListTile(
+                  title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  trailing: Text(
+                    '+${nf.format(pnl)}',
+                    style: const TextStyle(color: emerald, fontWeight: FontWeight.bold),
+                  ),
+                );
+              },
+            ),
     );
   }
 
@@ -263,102 +420,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildPLCard({
-    required String title,
-    required int value,
-    required ThemeData theme,
-    required NumberFormat numberFormat,
-    bool isLarge = false,
-  }) {
-    final isProfit = value >= 0;
-    final color = isProfit ? emerald : Colors.redAccent;
-    return Card(
-      color: const Color(0xFF151B2C),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF24304F)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: isLarge ? 20 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title.toUpperCase(),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${isProfit ? '+' : ''}${numberFormat.format(value)} riel',
-              style: TextStyle(
-                fontSize: isLarge ? 24 : 18,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRankingsCard(
-    List<dynamic> list, {
-    required bool isTickers,
-    required String noRankData,
-    required NumberFormat numberFormat,
-  }) {
-    return Card(
-      color: const Color(0xFF151B2C),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF24304F)),
-      ),
-      child: list.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: Text(noRankData, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-              ),
-            )
-          : Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: list.length,
-                itemBuilder: (context, index) {
-                  final item = list[index];
-                  final name = isTickers
-                      ? (item['ticker'] ?? '')
-                      : '${item['ticker']} (Lot #${item['seq']})';
-                  final pnl = item['realisedPnl'] ?? 0;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '#${index + 1} $name',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '+${numberFormat.format(pnl)}',
-                          style: const TextStyle(fontSize: 13, color: emerald, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
     );
   }
 }

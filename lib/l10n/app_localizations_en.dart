@@ -66,6 +66,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRankData => 'No rank data';
 
   @override
+  String get portfolioValue => 'Portfolio Value';
+
+  @override
+  String get todaysGain => 'Today\'s Gain';
+
+  @override
+  String get totalReturn => 'Total Return';
+
+  @override
+  String get portfolioPerformance => 'Portfolio Performance';
+
+  @override
+  String get exchangeRateTrend => 'Exchange Rate Trend';
+
+  @override
+  String get goldPriceTrend => 'Gold Price Trend';
+
+  @override
+  String get marketMovers => 'Market Movers';
+
+  @override
+  String get recentTrades => 'Recent Trades';
+
+  @override
+  String get valuationBid => 'Bid';
+
+  @override
+  String get valuationAsk => 'Ask';
+
+  @override
+  String get allMarkets => 'All Markets';
+
+  @override
+  String get csxMarket => 'CSX';
+
+  @override
+  String get goldMarket => 'Gold';
+
+  @override
+  String get usaMarket => 'USA';
+
+  @override
   String errorLoadingDashboard(String error) {
     return 'Error loading dashboard: $error';
   }
@@ -376,4 +418,114 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get personalizedAnalyticsLockedDesc =>
       'Sign in with your Google account to record trades, track your realised and unrealised profits, and see matching lots.';
+
+  @override
+  String get navLoanCalc => 'Loan Calculator';
+
+  @override
+  String get loanTitle => 'Loan Calculator';
+
+  @override
+  String get loanSubtitle =>
+      'Plan a loan and see the full repayment schedule before you sign.';
+
+  @override
+  String get loanAmount => 'Loan amount';
+
+  @override
+  String get loanCurrency => 'Currency';
+
+  @override
+  String get loanRate => 'Interest rate';
+
+  @override
+  String get loanPerMonth => '% per month';
+
+  @override
+  String get loanPerYear => '% per year';
+
+  @override
+  String get loanTerm => 'Term (months)';
+
+  @override
+  String get loanMethod => 'Interest method';
+
+  @override
+  String get loanMethodDeclining => 'Declining balance';
+
+  @override
+  String get loanMethodFlat => 'Flat rate';
+
+  @override
+  String get loanMethodDecliningDesc =>
+      'Interest is charged on what you still owe (EMI) — the true cost of the loan.';
+
+  @override
+  String get loanMethodFlatDesc =>
+      'Interest is charged on the original amount every month — how most Cambodian banks and MFIs quote.';
+
+  @override
+  String get loanStartDate => 'Loan start date';
+
+  @override
+  String get loanCalc => 'Generate schedule';
+
+  @override
+  String get loanSummary => 'Loan Summary';
+
+  @override
+  String get loanMonthlyPayment => 'MONTHLY PAYMENT';
+
+  @override
+  String get loanTotalInterest => 'TOTAL INTEREST';
+
+  @override
+  String get loanTotalRepay => 'TOTAL REPAYMENT';
+
+  @override
+  String loanCmpFlatSelected(String other, String diff) {
+    return 'On declining balance, the same loan would cost $other in interest — $diff less than this flat quote.';
+  }
+
+  @override
+  String loanCmpDecliningSelected(String other, String diff) {
+    return 'Quoted as a flat rate, the same numbers would cost $other in interest — $diff more.';
+  }
+
+  @override
+  String get loanSchedule => 'Repayment Schedule';
+
+  @override
+  String get loanColNo => '#';
+
+  @override
+  String get loanColDate => 'Due date';
+
+  @override
+  String get loanColPayment => 'Payment';
+
+  @override
+  String get loanColPrincipal => 'Principal';
+
+  @override
+  String get loanColInterest => 'Interest';
+
+  @override
+  String get loanColBalance => 'Balance';
+
+  @override
+  String get loanExportCsv => 'Export CSV';
+
+  @override
+  String get loanDisclaimer =>
+      'Estimates only — actual lender schedules, fees and rounding may differ.';
+
+  @override
+  String get loanErrInvalid => 'Enter a valid amount, rate and term.';
+
+  @override
+  String get loanErrTerm => 'Term is limited to 480 months.';
+
+  @override
+  String get loanEmpty => 'Fill in the loan details and generate the schedule.';
 }

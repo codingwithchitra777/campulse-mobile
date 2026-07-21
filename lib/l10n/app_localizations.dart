@@ -212,6 +212,90 @@ abstract class AppLocalizations {
   /// **'No rank data'**
   String get noRankData;
 
+  /// No description provided for @portfolioValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio Value'**
+  String get portfolioValue;
+
+  /// No description provided for @todaysGain.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Gain'**
+  String get todaysGain;
+
+  /// No description provided for @totalReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Return'**
+  String get totalReturn;
+
+  /// No description provided for @portfolioPerformance.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio Performance'**
+  String get portfolioPerformance;
+
+  /// No description provided for @exchangeRateTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchange Rate Trend'**
+  String get exchangeRateTrend;
+
+  /// No description provided for @goldPriceTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold Price Trend'**
+  String get goldPriceTrend;
+
+  /// No description provided for @marketMovers.
+  ///
+  /// In en, this message translates to:
+  /// **'Market Movers'**
+  String get marketMovers;
+
+  /// No description provided for @recentTrades.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Trades'**
+  String get recentTrades;
+
+  /// No description provided for @valuationBid.
+  ///
+  /// In en, this message translates to:
+  /// **'Bid'**
+  String get valuationBid;
+
+  /// No description provided for @valuationAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get valuationAsk;
+
+  /// No description provided for @allMarkets.
+  ///
+  /// In en, this message translates to:
+  /// **'All Markets'**
+  String get allMarkets;
+
+  /// No description provided for @csxMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'CSX'**
+  String get csxMarket;
+
+  /// No description provided for @goldMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get goldMarket;
+
+  /// No description provided for @usaMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'USA'**
+  String get usaMarket;
+
   /// No description provided for @errorLoadingDashboard.
   ///
   /// In en, this message translates to:
@@ -721,6 +805,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in with your Google account to record trades, track your realised and unrealised profits, and see matching lots.'**
   String get personalizedAnalyticsLockedDesc;
+
+  /// No description provided for @navLoanCalc.
+  ///
+  /// In en, this message translates to:
+  /// **'Loan Calculator'**
+  String get navLoanCalc;
+
+  /// No description provided for @loanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Loan Calculator'**
+  String get loanTitle;
+
+  /// No description provided for @loanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan a loan and see the full repayment schedule before you sign.'**
+  String get loanSubtitle;
+
+  /// No description provided for @loanAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Loan amount'**
+  String get loanAmount;
+
+  /// No description provided for @loanCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get loanCurrency;
+
+  /// No description provided for @loanRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest rate'**
+  String get loanRate;
+
+  /// No description provided for @loanPerMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'% per month'**
+  String get loanPerMonth;
+
+  /// No description provided for @loanPerYear.
+  ///
+  /// In en, this message translates to:
+  /// **'% per year'**
+  String get loanPerYear;
+
+  /// No description provided for @loanTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Term (months)'**
+  String get loanTerm;
+
+  /// No description provided for @loanMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest method'**
+  String get loanMethod;
+
+  /// No description provided for @loanMethodDeclining.
+  ///
+  /// In en, this message translates to:
+  /// **'Declining balance'**
+  String get loanMethodDeclining;
+
+  /// No description provided for @loanMethodFlat.
+  ///
+  /// In en, this message translates to:
+  /// **'Flat rate'**
+  String get loanMethodFlat;
+
+  /// No description provided for @loanMethodDecliningDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest is charged on what you still owe (EMI) — the true cost of the loan.'**
+  String get loanMethodDecliningDesc;
+
+  /// No description provided for @loanMethodFlatDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest is charged on the original amount every month — how most Cambodian banks and MFIs quote.'**
+  String get loanMethodFlatDesc;
+
+  /// No description provided for @loanStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Loan start date'**
+  String get loanStartDate;
+
+  /// No description provided for @loanCalc.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate schedule'**
+  String get loanCalc;
+
+  /// No description provided for @loanSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Loan Summary'**
+  String get loanSummary;
+
+  /// No description provided for @loanMonthlyPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'MONTHLY PAYMENT'**
+  String get loanMonthlyPayment;
+
+  /// No description provided for @loanTotalInterest.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL INTEREST'**
+  String get loanTotalInterest;
+
+  /// No description provided for @loanTotalRepay.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL REPAYMENT'**
+  String get loanTotalRepay;
+
+  /// No description provided for @loanCmpFlatSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'On declining balance, the same loan would cost {other} in interest — {diff} less than this flat quote.'**
+  String loanCmpFlatSelected(String other, String diff);
+
+  /// No description provided for @loanCmpDecliningSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Quoted as a flat rate, the same numbers would cost {other} in interest — {diff} more.'**
+  String loanCmpDecliningSelected(String other, String diff);
+
+  /// No description provided for @loanSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Repayment Schedule'**
+  String get loanSchedule;
+
+  /// No description provided for @loanColNo.
+  ///
+  /// In en, this message translates to:
+  /// **'#'**
+  String get loanColNo;
+
+  /// No description provided for @loanColDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date'**
+  String get loanColDate;
+
+  /// No description provided for @loanColPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get loanColPayment;
+
+  /// No description provided for @loanColPrincipal.
+  ///
+  /// In en, this message translates to:
+  /// **'Principal'**
+  String get loanColPrincipal;
+
+  /// No description provided for @loanColInterest.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest'**
+  String get loanColInterest;
+
+  /// No description provided for @loanColBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get loanColBalance;
+
+  /// No description provided for @loanExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get loanExportCsv;
+
+  /// No description provided for @loanDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimates only — actual lender schedules, fees and rounding may differ.'**
+  String get loanDisclaimer;
+
+  /// No description provided for @loanErrInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid amount, rate and term.'**
+  String get loanErrInvalid;
+
+  /// No description provided for @loanErrTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Term is limited to 480 months.'**
+  String get loanErrTerm;
+
+  /// No description provided for @loanEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in the loan details and generate the schedule.'**
+  String get loanEmpty;
 }
 
 class _AppLocalizationsDelegate
