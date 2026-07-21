@@ -38,6 +38,31 @@ class AuthService {
 
   Future<void> _ensureGoogleInitialized() async {
     if (_googleInitialized) return;
+
+    GoogleSignIn.instance.onCurrentUserChanged.listen((GoogleSignInAccount? account) async {
+      if (account != null) {
+        try {
+          final auth = await account.authentication;
+          final idToken = auth.idToken;
+          if (idToken != null) {
+            final res = await ApiService.instance.googleLogin(idToken);
+            if (res['success'] == true) {
+              final p = GoogleProfile(
+                userId: res['userId'] as String,
+                name: (res['userName'] as String?) ?? 'Google User',
+                email: res['email'] as String?,
+              );
+              profile.value = p;
+              ApiService.instance.activeUserId = p.userId;
+              await _persist(p);
+            }
+          }
+        } catch (e) {
+          debugPrint('Google Sign-In backend login error: $e');
+        }
+      }
+    });
+
     await GoogleSignIn.instance.initialize(
       serverClientId: kIsWeb ? null : _webClientId,
       clientId: kIsWeb ? _webClientId : null,
@@ -81,23 +106,11 @@ class AuthService {
 
   Future<void> signInWithGoogle() async {
     await _ensureGoogleInitialized();
-    final account = await GoogleSignIn.instance.authenticate();
-    final idToken = account.authentication.idToken;
-    if (idToken == null) {
-      throw Exception('Google did not return an ID token');
+    // On web, the GIS renderButton handles the sign in popup directly.
+    // On mobile, we trigger it manually. The stream listener above handles the rest.
+    if (!kIsWeb) {
+      await GoogleSignIn.instance.signIn();
     }
-    final res = await ApiService.instance.googleLogin(idToken);
-    if (res['success'] != true) {
-      throw Exception('Google sign-in failed');
-    }
-    final p = GoogleProfile(
-      userId: res['userId'] as String,
-      name: (res['userName'] as String?) ?? 'Google User',
-      email: res['email'] as String?,
-    );
-    profile.value = p;
-    ApiService.instance.activeUserId = p.userId;
-    await _persist(p);
   }
 
   Future<void> logout() async {
