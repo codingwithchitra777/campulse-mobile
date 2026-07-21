@@ -123,70 +123,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(25),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('🔐 Secure, Local-First Trading Journal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ],
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+              border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('🔐 ', style: TextStyle(fontSize: 12)),
+                Text('Google Authenticated & Secure', style: TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w600, fontSize: 12)),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 24),
         Text(
-          'Take Control of Your\nCSX Investments',
-          textAlign: TextAlign.center,
-          style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+          'CamPulse - Cambodia\'s Premium Investment\n& Portfolio Tracker',
+          textAlign: TextAlign.left,
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: Colors.white, height: 1.25),
         ),
         const SizedBox(height: 16),
         Text(
-          'Track your portfolio, calculate precise LIFO profits, and sync effortlessly across devices.',
-          textAlign: TextAlign.center,
-          style: textTheme.bodyLarge?.copyWith(color: Colors.grey),
+          'A real-world professional ledger for active investors. Log transactions, track real-time asset prices, and automatically analyze matching lots using best-price cost-basis logic.',
+          textAlign: TextAlign.left,
+          style: textTheme.bodyLarge?.copyWith(color: const Color(0xFF9CA3AF), height: 1.5),
         ),
         const SizedBox(height: 32),
-        Row(
+        Column(
           children: [
-            Expanded(
-              child: Card(
-                color: const Color(0xFF151B2C),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF24304F))),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Text('📊', style: TextStyle(fontSize: 24)),
-                      const SizedBox(height: 8),
-                      Text('Live Prices', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('CSX & Gold feeds', textAlign: TextAlign.center, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
-                    ],
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B).withValues(alpha: 0.3),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2.0),
+                    child: Text('📊', style: TextStyle(fontSize: 20)),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Real-Time Prices', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text('Public cached feed directly from the Cambodia Securities Exchange.', style: textTheme.bodySmall?.copyWith(color: const Color(0xFF9CA3AF))),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Card(
-                color: const Color(0xFF151B2C),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF24304F))),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Text('📦', style: TextStyle(fontSize: 24)),
-                      const SizedBox(height: 8),
-                      Text('LIFO Matching', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('Precise profit tracking', textAlign: TextAlign.center, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
-                    ],
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B).withValues(alpha: 0.3),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2.0),
+                    child: Text('📦', style: TextStyle(fontSize: 20)),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Best-Price Lot Matching', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text('Sales are matched against your cheapest open buy lots first, maximising realised profit.', style: textTheme.bodySmall?.copyWith(color: const Color(0xFF9CA3AF))),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -473,30 +499,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildLockedPrompt(AppLocalizations l10n) {
-    return Card(
-      color: const Color(0xFF151B2C),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF24304F)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            const Text('🔒', style: TextStyle(fontSize: 32)),
-            const SizedBox(height: 8),
-            Text(
-              l10n.personalizedAnalyticsLocked,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.personalizedAnalyticsLockedDesc,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
-            ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF111827).withValues(alpha: 0.8),
+            const Color(0xFF0F172A).withValues(alpha: 0.95),
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+              border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                )
+              ],
+            ),
+            child: const Center(
+              child: Text('🔒', style: TextStyle(fontSize: 28)),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Sign in to view your dashboard',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Sign in with your Google account to record trades, track your realized and unrealized profits, and see matching lots.',
+            style: TextStyle(
+              color: Color(0xFF9CA3AF),
+              fontSize: 14,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
