@@ -26,7 +26,7 @@ class AuthService {
 
   // Same Web OAuth Client ID the backend's /api/auth/google endpoint checks
   // the token audience against (backend/app/api/v1/endpoints/auth.py).
-  static const _webClientId = '1048965896991-dirq98278c5cj312k2o0kq3f307e2krf.apps.googleusercontent.com';
+  static const _webClientId = '1048965896991-u7p1enm4jdujo3ngkblkranjbcjno999.apps.googleusercontent.com';
   static const _prefsKey = 'google_profile';
 
   final ValueNotifier<GoogleProfile?> profile = ValueNotifier<GoogleProfile?>(null);
