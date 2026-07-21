@@ -39,7 +39,7 @@ class AuthService {
   Future<void> _ensureGoogleInitialized() async {
     if (_googleInitialized) return;
     await GoogleSignIn.instance.initialize(
-      serverClientId: _webClientId,
+      serverClientId: kIsWeb ? null : _webClientId,
       clientId: kIsWeb ? _webClientId : null,
     );
     _googleInitialized = true;
