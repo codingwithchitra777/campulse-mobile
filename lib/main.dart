@@ -1,82 +1,85 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/portfolio_screen.dart';
 import 'screens/add_trade_screen.dart';
-import 'screens/watchlist_screen.dart';
+import 'screens/history_screen.dart';
 import 'screens/account_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
-import 'dart:ui';
-
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
+import 'theme/locale_controller.dart';
+import 'theme/theme_controller.dart';
 
 void main() {
-  runApp(const CsxTradingJournalApp());
+  runApp(const CamPulseApp());
 }
 
-class CsxTradingJournalApp extends StatefulWidget {
-  const CsxTradingJournalApp({super.key});
+class CamPulseApp extends StatefulWidget {
+  const CamPulseApp({super.key});
 
   @override
-  State<CsxTradingJournalApp> createState() => _CsxTradingJournalAppState();
+  State<CamPulseApp> createState() => _CamPulseAppState();
 }
 
-class _CsxTradingJournalAppState extends State<CsxTradingJournalApp> {
-  Locale _locale = const Locale('en');
+class _CamPulseAppState extends State<CamPulseApp> {
   bool _ready = false;
 
   @override
   void initState() {
     super.initState();
-    AuthService.instance.restoreSession().then((_) {
-      if (mounted) setState(() => _ready = true);
-    });
+    _bootstrap();
   }
 
-  void _setLocale(Locale locale) {
-    setState(() => _locale = locale);
+  Future<void> _bootstrap() async {
+    await Future.wait([
+      AuthService.instance.restoreSession(),
+      ThemeController.instance.restore(),
+      LocaleController.instance.restore(),
+    ]);
+    if (mounted) setState(() => _ready = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'CamPulse',
-      debugShowCheckedModeBanner: false,
-      locale: _locale,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF080C14),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0F172A),
-          elevation: 0,
-        ),
-      ),
-      home: _ready
-          ? MainLayout(currentLocale: _locale, onLocaleChanged: _setLocale)
-          : const Scaffold(
-              backgroundColor: Color(0xFF080C14),
-              body: Center(child: CircularProgressIndicator()),
-            ),
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        ThemeController.instance,
+        LocaleController.instance,
+      ]),
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'CamPulse',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: ThemeController.instance.mode,
+          locale: LocaleController.instance.locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: _ready
+              ? const MainLayout()
+              : Builder(
+                  builder: (context) => Scaffold(
+                    body: const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+        );
+      },
     );
   }
 }
 
 class MainLayout extends StatefulWidget {
-  final Locale currentLocale;
-  final ValueChanged<Locale> onLocaleChanged;
-
-  const MainLayout({
-    super.key,
-    required this.currentLocale,
-    required this.onLocaleChanged,
-  });
+  const MainLayout({super.key});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -85,33 +88,7 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
 
-  // Refresh trigger keys, so the previously-loaded screens reload with the
-  // newly signed-in (or signed-out) user's data.
-  final GlobalKey<State> _dashKey = GlobalKey();
-  final GlobalKey<State> _portKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    AuthService.instance.profile.addListener(_onAuthChanged);
-  }
-
-  @override
-  void dispose() {
-    AuthService.instance.profile.removeListener(_onAuthChanged);
-    super.dispose();
-  }
-
-  void _onAuthChanged() {
-    _dashKey.currentState?.setState(() {});
-    _portKey.currentState?.setState(() {});
-  }
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
+  void _go(int index) => setState(() => _currentIndex = index);
 
   @override
   Widget build(BuildContext context) {
@@ -119,170 +96,43 @@ class _MainLayoutState extends State<MainLayout> {
 
     return ValueListenableBuilder<GoogleProfile?>(
       valueListenable: AuthService.instance.profile,
-      builder: (context, googleProfile, _) {
-        final isGuest = googleProfile == null;
+      builder: (context, profile, _) {
+        final isGuest = profile == null;
+        // Key screens by the active user so a login/logout recreates them and
+        // their initState re-fetches — no manual GlobalKey.setState plumbing.
+        final userKey = profile?.userId ?? 'guest';
 
-        final List<Widget> screens = [
-          DashboardScreen(
-            key: _dashKey,
-            onRefresh: () {
-              setState(() {});
-            },
-          ),
-          isGuest ? const LoginScreen() : PortfolioScreen(key: _portKey),
-          isGuest
-              ? const LoginScreen()
-              : AddTradeScreen(
-                  onTradeAdded: () {
-                    setState(() {});
-                  },
-                ),
-          isGuest ? const LoginScreen() : const WatchlistScreen(),
-          isGuest ? const LoginScreen() : const AccountScreen(),
+        Widget guarded(Widget page) => isGuest ? const LoginScreen() : page;
+
+        final screens = <Widget>[
+          DashboardScreen(key: ValueKey('dash_$userKey'), onRefresh: () {}),
+          guarded(PortfolioScreen(key: ValueKey('port_$userKey'))),
+          guarded(AddTradeScreen(
+            key: ValueKey('add_$userKey'),
+            onTradeAdded: () => _go(0),
+          )),
+          guarded(HistoryScreen(key: ValueKey('hist_$userKey'))),
+          guarded(AccountScreen(key: ValueKey('acct_$userKey'))),
         ];
 
         final titles = [
           l10n.titleDashboard,
           l10n.titlePortfolio,
           l10n.titleAddTrade,
-          'Watchlist',
+          'History',
           'Account',
         ];
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(titles[_currentIndex], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            actions: [
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF334155)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: widget.currentLocale.languageCode,
-                      dropdownColor: const Color(0xFF0F172A),
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                      items: [
-                        DropdownMenuItem<String>(value: 'en', child: Text(l10n.languageEnglish)),
-                        DropdownMenuItem<String>(value: 'km', child: Text(l10n.languageKhmer)),
-                      ],
-                      onChanged: (code) {
-                        if (code != null) widget.onLocaleChanged(Locale(code));
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Center(
-                  child: isGuest
-                      ? const SizedBox.shrink() // Removed "Guest" label entirely
-                      : Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF334155)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  googleProfile.name,
-                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              InkWell(
-                                onTap: () => AuthService.instance.logout(),
-                                child: Tooltip(
-                                  message: l10n.logout,
-                                  child: const Icon(Icons.logout, size: 16, color: Colors.grey),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
+          appBar: AppBar(title: Text(titles[_currentIndex])),
           body: Stack(
             children: [
-              IndexedStack(
-                index: _currentIndex,
-                children: screens,
-              ),
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: SafeArea(
-                  child: Container(
-                    height: 66,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D121E).withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 40,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(22),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildNavItem(icon: Icons.dashboard_outlined, label: l10n.navDashboard, index: 0),
-                            _buildNavItem(icon: Icons.business_center_outlined, label: l10n.navPortfolio, index: 1),
-                            
-                            // Center Record FAB
-                            GestureDetector(
-                              onTap: () => _onTabTapped(2),
-                              child: Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF3B82F6).withOpacity(0.4),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(Icons.add, color: Colors.white, size: 28),
-                              ),
-                            ),
-                            
-                            _buildNavItem(icon: Icons.star_border, label: 'Watchlist', index: 3),
-                            _buildNavItem(icon: Icons.person_outline, label: 'Account', index: 4),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              IndexedStack(index: _currentIndex, children: screens),
+              _FloatingNav(
+                currentIndex: _currentIndex,
+                onTap: _go,
+                dashboardLabel: l10n.navDashboard,
+                portfolioLabel: l10n.navPortfolio,
               ),
             ],
           ),
@@ -290,30 +140,161 @@ class _MainLayoutState extends State<MainLayout> {
       },
     );
   }
+}
 
-  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
-    final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => _onTabTapped(index),
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? Colors.blue : const Color(0xFF94A3B8),
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.blue : const Color(0xFF94A3B8),
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+/// The glassy floating bottom nav: Dashboard · Portfolio · [+ Record] · History
+/// · Account. Colors come from the active theme so it works in light & dark.
+class _FloatingNav extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+  final String dashboardLabel;
+  final String portfolioLabel;
+
+  const _FloatingNav({
+    required this.currentIndex,
+    required this.onTap,
+    required this.dashboardLabel,
+    required this.portfolioLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return Positioned(
+      left: AppSpacing.lg,
+      right: AppSpacing.lg,
+      bottom: AppSpacing.lg,
+      child: SafeArea(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg + 2),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              height: 66,
+              decoration: BoxDecoration(
+                color: c.navBar.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusLg + 2),
+                border: Border.all(color: c.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _NavItem(
+                    icon: Icons.dashboard_outlined,
+                    activeIcon: Icons.dashboard_rounded,
+                    label: dashboardLabel,
+                    selected: currentIndex == 0,
+                    onTap: () => onTap(0),
+                  ),
+                  _NavItem(
+                    icon: Icons.pie_chart_outline_rounded,
+                    activeIcon: Icons.pie_chart_rounded,
+                    label: portfolioLabel,
+                    selected: currentIndex == 1,
+                    onTap: () => onTap(1),
+                  ),
+                  _RecordFab(onTap: () => onTap(2)),
+                  _NavItem(
+                    icon: Icons.receipt_long_outlined,
+                    activeIcon: Icons.receipt_long_rounded,
+                    label: 'History',
+                    selected: currentIndex == 3,
+                    onTap: () => onTap(3),
+                  ),
+                  _NavItem(
+                    icon: Icons.person_outline_rounded,
+                    activeIcon: Icons.person_rounded,
+                    label: 'Account',
+                    selected: currentIndex == 4,
+                    onTap: () => onTap(4),
+                  ),
+                ],
+              ),
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final color = selected ? c.primary : c.textMuted;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(selected ? activeIcon : icon, color: color, size: 23),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecordFab extends StatelessWidget {
+  final VoidCallback onTap;
+  const _RecordFab({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          gradient: c.primaryGradient,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          boxShadow: [
+            BoxShadow(
+              color: c.primary.withValues(alpha: 0.45),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Icon(Icons.add_rounded, color: c.onPrimary, size: 28),
       ),
     );
   }

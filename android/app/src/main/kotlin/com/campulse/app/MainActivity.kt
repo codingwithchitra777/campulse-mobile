@@ -1,4 +1,4 @@
-package com.csx.tradingjournal.app
+package com.campulse.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -9,14 +9,20 @@ class GoogleProfile {
   final String name;
   final String? email;
 
-  const GoogleProfile({required this.userId, required this.name, this.email});
+  /// Backend-issued JWT. Sent as `Authorization: Bearer <token>` on every
+  /// authed request; persisted so the session survives an app restart.
+  final String? token;
 
-  Map<String, dynamic> toJson() => {'userId': userId, 'name': name, 'email': email};
+  const GoogleProfile({required this.userId, required this.name, this.email, this.token});
+
+  Map<String, dynamic> toJson() =>
+      {'userId': userId, 'name': name, 'email': email, 'token': token};
 
   factory GoogleProfile.fromJson(Map<String, dynamic> json) => GoogleProfile(
         userId: json['userId'] as String,
         name: json['name'] as String,
         email: json['email'] as String?,
+        token: json['token'] as String?,
       );
 }
 
@@ -26,7 +32,7 @@ class AuthService {
 
   // Same Web OAuth Client ID the backend's /api/auth/google endpoint checks
   // the token audience against (backend/app/api/v1/endpoints/auth.py).
-  static const _webClientId = '1048965896991-u7p1enm4jdujo3ngkblkranjbcjno999.apps.googleusercontent.com';
+  static const _webClientId = '1048965896991-dirq98278c5cj312k2o0kq3f307e2krf.apps.googleusercontent.com';
   static const _prefsKey = 'google_profile';
 
   final ValueNotifier<GoogleProfile?> profile = ValueNotifier<GoogleProfile?>(null);
@@ -52,9 +58,9 @@ class AuthService {
                 userId: res['userId'] as String,
                 name: (res['userName'] as String?) ?? 'Google User',
                 email: res['email'] as String?,
+                token: res['token'] as String?,
               );
-              profile.value = p;
-              ApiService.instance.activeUserId = p.userId;
+              _applyProfile(p);
               await _persist(p);
             }
           }
@@ -78,7 +84,7 @@ class AuthService {
     final cached = prefs.getString(_prefsKey);
     if (cached != null) {
       try {
-        profile.value = GoogleProfile.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+        _applyProfile(GoogleProfile.fromJson(jsonDecode(cached) as Map<String, dynamic>));
       } catch (_) {
         await prefs.remove(_prefsKey);
       }
@@ -97,11 +103,25 @@ class AuthService {
     await prefs.setString(_prefsKey, jsonEncode(p.toJson()));
   }
 
-  /// Mirrors the web app's "Continue as Guest using Demo Account" backdoor.
-  Future<void> loginAsDemo(String userId, String name) async {
-    final p = GoogleProfile(userId: userId, name: name, email: '$userId@demo.com');
+  /// Publishes a signed-in profile and wires its bearer token into ApiService.
+  void _applyProfile(GoogleProfile p) {
     profile.value = p;
     ApiService.instance.activeUserId = p.userId;
+    ApiService.instance.authToken = p.token;
+  }
+
+  /// Mirrors the web app's "Continue as Guest using Demo Account" backdoor.
+  /// Hits /api/auth/demo so the session carries a real JWT (otherwise every
+  /// authed call 401s).
+  Future<void> loginAsDemo(String userId, String name) async {
+    final res = await ApiService.instance.demoLogin(userId, name);
+    final p = GoogleProfile(
+      userId: (res['userId'] as String?) ?? userId,
+      name: (res['userName'] as String?) ?? name,
+      email: '$userId@demo.com',
+      token: res['token'] as String?,
+    );
+    _applyProfile(p);
     await _persist(p);
   }
 
@@ -117,6 +137,7 @@ class AuthService {
   Future<void> logout() async {
     profile.value = null;
     ApiService.instance.activeUserId = 'guest';
+    ApiService.instance.authToken = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsKey);
     try {

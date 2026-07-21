@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
+import '../utils/money.dart';
+import '../widgets/app_card.dart';
+import '../widgets/pnl_chip.dart';
+import '../widgets/section_header.dart';
+import '../widgets/skeleton.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onRefresh;
@@ -13,25 +18,33 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
+/// Running totals for one currency — never blended across currencies.
+class _Agg {
+  double value = 0;
+  double realised = 0;
+  double unrealised = 0;
+  int positions = 0;
+  double get ret => realised + unrealised;
+}
+
 class _DashboardScreenState extends State<DashboardScreen> {
-  static const Color emerald = Color(0xFF10B981);
   final ApiService _api = ApiService.instance;
   bool _loading = false;
-  
+
   List<dynamic> _topTickers = [];
-  
   Map<String, dynamic>? _chartsData;
   Map<String, dynamic>? _exchangeHistory;
   Map<String, dynamic>? _goldHistory;
   Map<String, dynamic>? _latestExchangeRate;
 
   String _valuationMode = 'BID';
-  String _selectedMarket = 'ALL';
-  String _baseCurrency = 'KHR';
+  final String _selectedMarket = 'ALL';
+  final String _baseCurrency = 'KHR';
 
-  double _portfolioValue = 0;
-  double _totalReturn = 0;
-  
+  /// Per-currency aggregates, primary currency first.
+  final Map<String, _Agg> _byCurrency = {};
+  int _totalPositions = 0;
+
   @override
   void initState() {
     super.initState();
@@ -44,32 +57,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final latestExchange = await _api.getLatestExchangeRate('USD', 'KHR');
       final exchangeHistory = await _api.getExchangeRateHistory('USD', 'KHR');
       final goldHistory = await _api.getMarketPriceHistory('XAU-KH');
-      
-      List<dynamic> portfolio = [];
+
       List<dynamic> topTickers = [];
       Map<String, dynamic>? chartsData;
-      
-      double pValue = 0;
-      double tReturn = 0;
+      final byCcy = <String, _Agg>{};
+      int positions = 0;
 
       if (!AuthService.instance.isGuest) {
-        portfolio = await _api.getPortfolio(valuationMode: _valuationMode);
+        final portfolio = await _api.getPortfolio(valuationMode: _valuationMode);
         topTickers = await _api.getTopTickers();
-        
         chartsData = await _api.getChartsTimeline(
           _selectedMarket == 'ALL' ? null : _selectedMarket,
           _baseCurrency,
           _valuationMode,
         );
 
-        for (var holding in portfolio) {
-          final qty = (holding['remainingQuantity'] as num?)?.toDouble() ?? 0;
-          final price = (holding['currentPrice'] as num?)?.toDouble() ?? 0;
-          final unrealised = (holding['unrealisedPnl'] as num?)?.toDouble() ?? 0;
-          final realised = (holding['realisedPnl'] as num?)?.toDouble() ?? 0;
-          
-          pValue += (qty * price);
-          tReturn += (realised + unrealised);
+        for (final h in portfolio) {
+          final ccy = (h['currency'] as String?) ?? 'KHR';
+          final qty = (h['remainingQty'] as num?)?.toDouble() ?? 0;
+          final price = (h['lastPrice'] as num?)?.toDouble() ?? 0;
+          final realised = (h['realisedPnl'] as num?)?.toDouble() ?? 0;
+          final unrealised = (h['unrealisedPnl'] as num?)?.toDouble() ?? 0;
+
+          final agg = byCcy.putIfAbsent(ccy, () => _Agg());
+          agg.value += qty * price;
+          agg.realised += realised;
+          agg.unrealised += unrealised;
+          if (qty > 0) agg.positions += 1;
+          positions += 1;
         }
       }
 
@@ -77,12 +92,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _latestExchangeRate = latestExchange;
         _exchangeHistory = exchangeHistory;
         _goldHistory = goldHistory;
-        
         _topTickers = topTickers;
         _chartsData = chartsData;
-        _portfolioValue = pValue;
-        _totalReturn = tReturn;
-        
+        _byCurrency
+          ..clear()
+          ..addAll(_sortedByValue(byCcy));
+        _totalPositions = positions;
         _loading = false;
       });
     } catch (e) {
@@ -95,352 +110,437 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  /// KHR first, then by descending value — so the hero shows the main currency.
+  Map<String, _Agg> _sortedByValue(Map<String, _Agg> m) {
+    final entries = m.entries.toList()
+      ..sort((a, b) {
+        if (a.key == 'KHR') return -1;
+        if (b.key == 'KHR') return 1;
+        return b.value.value.compareTo(a.value.value);
+      });
+    return {for (final e in entries) e.key: e.value};
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     final l10n = AppLocalizations.of(context)!;
-    final numberFormat = NumberFormat('#,###');
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
 
     return RefreshIndicator(
       onRefresh: _loadAllData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110,
+        ),
         child: AuthService.instance.isGuest
-            ? _buildGuestState(l10n, textTheme)
-            : _buildAuthenticatedState(l10n, numberFormat, theme, textTheme),
+            ? _GuestHero(l10n: l10n)
+            : _loading
+                ? _buildSkeleton(context)
+                : _buildContent(context, l10n),
       ),
     );
   }
 
-  Widget _buildGuestState(AppLocalizations l10n, TextTheme textTheme) {
+  // ── Loading skeleton ────────────────────────────────────────────────
+  Widget _buildSkeleton(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-              border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('🔐 ', style: TextStyle(fontSize: 12)),
-                Text('Google Authenticated & Secure', style: TextStyle(color: Color(0xFF60A5FA), fontWeight: FontWeight.w600, fontSize: 12)),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'CamPulse - Cambodia\'s Premium Investment\n& Portfolio Tracker',
-          textAlign: TextAlign.left,
-          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: Colors.white, height: 1.25),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'A real-world professional ledger for active investors. Log transactions, track real-time asset prices, and automatically analyze matching lots using best-price cost-basis logic.',
-          textAlign: TextAlign.left,
-          style: textTheme.bodyLarge?.copyWith(color: const Color(0xFF9CA3AF), height: 1.5),
-        ),
-        const SizedBox(height: 32),
-        Column(
+      children: const [
+        Skeleton(width: 160, height: 14),
+        SizedBox(height: AppSpacing.lg),
+        Skeleton.card(height: 150),
+        SizedBox(height: AppSpacing.lg),
+        Row(
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withValues(alpha: 0.3),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 2.0),
-                    child: Text('📊', style: TextStyle(fontSize: 20)),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Real-Time Prices', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text('Public cached feed directly from the Cambodia Securities Exchange.', style: textTheme.bodySmall?.copyWith(color: const Color(0xFF9CA3AF))),
-                      ],
-                    ),
-                  ),
-                ],
+            Expanded(child: Skeleton(height: 76)),
+            SizedBox(width: AppSpacing.md),
+            Expanded(child: Skeleton(height: 76)),
+            SizedBox(width: AppSpacing.md),
+            Expanded(child: Skeleton(height: 76)),
+          ],
+        ),
+        SizedBox(height: AppSpacing.xl),
+        Skeleton.card(height: 220),
+      ],
+    );
+  }
+
+  // ── Authenticated content ───────────────────────────────────────────
+  Widget _buildContent(BuildContext context, AppLocalizations l10n) {
+    final primaryCcy = _byCurrency.keys.isNotEmpty ? _byCurrency.keys.first : 'KHR';
+    final primary = _byCurrency[primaryCcy] ?? _Agg();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _greeting(context),
+        const SizedBox(height: AppSpacing.lg),
+        _buildHero(context, l10n, primaryCcy, primary),
+        const SizedBox(height: AppSpacing.lg),
+        _buildQuickStats(context, primaryCcy, primary),
+        const SizedBox(height: AppSpacing.xl),
+        SectionHeader(title: l10n.portfolioPerformance),
+        AppCard(
+          child: SizedBox(height: 200, child: _buildEquityChart(context)),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        SectionHeader(title: l10n.marketMovers),
+        _buildMovers(context, l10n),
+        const SizedBox(height: AppSpacing.xl),
+        Row(
+          children: [
+            Expanded(
+              child: _miniChartCard(
+                context, l10n.exchangeRateTrend,
+                _exchangeSpots(), context.colors.primary,
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withValues(alpha: 0.3),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 2.0),
-                    child: Text('📦', style: TextStyle(fontSize: 20)),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Best-Price Lot Matching', style: textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text('Sales are matched against your cheapest open buy lots first, maximising realised profit.', style: textTheme.bodySmall?.copyWith(color: const Color(0xFF9CA3AF))),
-                      ],
-                    ),
-                  ),
-                ],
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _miniChartCard(
+                context, l10n.goldPriceTrend,
+                _goldSpots(), context.colors.warning,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 40),
-        _buildLockedPrompt(l10n),
-        const SizedBox(height: 80),
       ],
     );
   }
 
-  Widget _buildAuthenticatedState(AppLocalizations l10n, NumberFormat numberFormat, ThemeData theme, TextTheme textTheme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildExchangeRateHeader(l10n),
-        const SizedBox(height: 16),
-        _buildValuationToggle(l10n),
-        const SizedBox(height: 16),
-        _buildPortfolioSummary(l10n, numberFormat, theme),
-        const SizedBox(height: 24),
-        _buildChartSection(l10n.portfolioPerformance, _buildPortfolioChart()),
-        const SizedBox(height: 24),
-        _buildChartSection(l10n.exchangeRateTrend, _buildExchangeRateChart()),
-        const SizedBox(height: 24),
-        _buildChartSection(l10n.goldPriceTrend, _buildGoldChart()),
-        const SizedBox(height: 24),
-        Text(
-          l10n.marketMovers,
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        _buildMarketMovers(l10n, numberFormat),
-        const SizedBox(height: 80),
-      ],
+  Widget _greeting(BuildContext context) {
+    final c = context.colors;
+    final name = _firstName(AuthService.instance.profile.value?.name ?? '');
+    final hour = DateTime.now().hour;
+    final part = hour < 12 ? 'Good morning' : (hour < 18 ? 'Good afternoon' : 'Good evening');
+    return Text(
+      name.isEmpty ? part : '$part, $name',
+      style: TextStyle(color: c.textMuted, fontSize: 14, fontWeight: FontWeight.w500),
     );
   }
 
-  Widget _buildExchangeRateHeader(AppLocalizations l10n) {
-    String rateText = '---';
-    if (_latestExchangeRate != null && _latestExchangeRate!['rate'] != null) {
-      final r = _latestExchangeRate!['rate'];
+  /// First real given name, skipping honorifics like "Mr."/"Dr.".
+  static String _firstName(String full) {
+    const titles = {'mr', 'mr.', 'ms', 'ms.', 'mrs', 'mrs.', 'dr', 'dr.', 'miss'};
+    for (final t in full.split(RegExp(r'\s+')).where((t) => t.isNotEmpty)) {
+      if (!titles.contains(t.toLowerCase())) return t;
+    }
+    return '';
+  }
+
+  Widget _buildHero(BuildContext context, AppLocalizations l10n, String ccy, _Agg agg) {
+    final c = context.colors;
+    final secondary = _byCurrency.entries.where((e) => e.key != ccy).toList();
+
+    return AppCard(
+      gradient: c.primaryGradient,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l10n.portfolioValue.toUpperCase(),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              _valuationToggle(context, l10n),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            Money.format(agg.value, ccy),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              _heroReturnPill(agg.ret, ccy),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'total return',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12),
+              ),
+            ],
+          ),
+          if (secondary.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
+            const SizedBox(height: AppSpacing.md),
+            for (final e in secondary)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${e.key} holdings',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                    ),
+                    Text(
+                      Money.format(e.value.value, e.key),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          _rateChip(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroReturnPill(num value, String ccy) {
+    final up = value >= 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+              size: 14, color: Colors.white),
+          const SizedBox(width: 2),
+          Text(
+            Money.format(value, ccy, signed: true),
+            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rateChip(BuildContext context) {
+    String rateText = '—';
+    final r = _latestExchangeRate?['rate'];
+    if (r != null && r['bidRate'] != null) {
       rateText = '${r['bidRate']} / ${r['askRate']}';
     }
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('USD/KHR : $rateText', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
-      ],
-    );
-  }
-
-  Widget _buildValuationToggle(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        ToggleButtons(
-          isSelected: [_valuationMode == 'BID', _valuationMode == 'ASK'],
-          onPressed: (index) {
-            setState(() {
-              _valuationMode = index == 0 ? 'BID' : 'ASK';
-            });
-            _loadAllData();
-          },
-          borderRadius: BorderRadius.circular(8),
-          constraints: const BoxConstraints(minHeight: 32, minWidth: 60),
-          children: [
-            Text(l10n.valuationBid),
-            Text(l10n.valuationAsk),
-          ],
+        Icon(Icons.currency_exchange_rounded, size: 14, color: Colors.white.withValues(alpha: 0.8)),
+        const SizedBox(width: 5),
+        Text(
+          'USD/KHR  $rateText',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ],
     );
   }
 
-  Widget _buildPortfolioSummary(AppLocalizations l10n, NumberFormat nf, ThemeData theme) {
-    final isProfit = _totalReturn >= 0;
-    final color = isProfit ? emerald : Colors.redAccent;
-    
-    return Row(
-      children: [
-        Expanded(
-          child: Card(
-            color: const Color(0xFF151B2C),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFF24304F)),
+  Widget _valuationToggle(BuildContext context, AppLocalizations l10n) {
+    Widget seg(String label, bool selected, VoidCallback onTap) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? context.colors.primary : Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+      ),
+      child: Row(
+        children: [
+          seg(l10n.valuationBid, _valuationMode == 'BID', () {
+            if (_valuationMode != 'BID') {
+              setState(() => _valuationMode = 'BID');
+              _loadAllData();
+            }
+          }),
+          seg(l10n.valuationAsk, _valuationMode == 'ASK', () {
+            if (_valuationMode != 'ASK') {
+              setState(() => _valuationMode = 'ASK');
+              _loadAllData();
+            }
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStats(BuildContext context, String ccy, _Agg agg) {
+    final c = context.colors;
+    Widget tile(String label, String value, {Color? color, IconData? icon}) {
+      return Expanded(
+        child: AppCard(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Text(l10n.portfolioValue.toUpperCase(), style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  const SizedBox(height: 4),
-                  Text('${nf.format(_portfolioValue)} $_baseCurrency', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  if (icon != null) ...[
+                    Icon(icon, size: 14, color: c.textMuted),
+                    const SizedBox(width: 4),
+                  ],
+                  Expanded(
+                    child: Text(label,
+                        style: TextStyle(color: c.textMuted, fontSize: 11, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis),
+                  ),
                 ],
               ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Card(
-            color: const Color(0xFF151B2C),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFF24304F)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.totalReturn.toUpperCase(), style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  const SizedBox(height: 4),
-                  Text('${isProfit ? '+' : ''}${nf.format(_totalReturn)} $_baseCurrency', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-                ],
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(color: color ?? c.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ),
-            ),
+            ],
           ),
         ),
-      ],
-    );
-  }
+      );
+    }
 
-  Widget _buildChartSection(String title, Widget chartWidget) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 8),
-        Card(
-          color: const Color(0xFF151B2C),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: Color(0xFF24304F)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              height: 200,
-              child: chartWidget,
-            ),
-          ),
-        ),
+        tile('Realised', Money.format(agg.realised, ccy, signed: true),
+            color: c.pnl(agg.realised), icon: Icons.check_circle_outline_rounded),
+        const SizedBox(width: AppSpacing.md),
+        tile('Unrealised', Money.format(agg.unrealised, ccy, signed: true),
+            color: c.pnl(agg.unrealised), icon: Icons.trending_up_rounded),
+        const SizedBox(width: AppSpacing.md),
+        tile('Positions', '$_totalPositions', icon: Icons.layers_outlined),
       ],
     );
   }
 
-  Widget _buildPortfolioChart() {
-    if (_chartsData == null || _chartsData!['labels'] == null || (_chartsData!['labels'] as List).isEmpty) {
-      return const Center(child: Text('No chart data', style: TextStyle(color: Colors.grey)));
-    }
-    
-    final equity = _chartsData!['equity'] as List;
-    
-    if (equity.isEmpty) return const Center(child: Text('No equity data'));
-
-    List<FlSpot> spots = [];
-    for (int i = 0; i < equity.length; i++) {
-      spots.add(FlSpot(i.toDouble(), (equity[i] as num).toDouble()));
-    }
-
-    return _buildLineChart(spots, emerald);
+  // ── Charts ──────────────────────────────────────────────────────────
+  List<FlSpot> _equitySpots() {
+    final equity = _chartsData?['equity'];
+    if (equity is! List || equity.isEmpty) return [];
+    // Each entry is {date, value} — pull the numeric value.
+    return [
+      for (int i = 0; i < equity.length; i++)
+        FlSpot(i.toDouble(), (equity[i]['value'] as num?)?.toDouble() ?? 0),
+    ];
   }
 
-  Widget _buildExchangeRateChart() {
-    if (_exchangeHistory == null || _exchangeHistory!['items'] == null) {
-      return const Center(child: Text('No data'));
-    }
-    final items = _exchangeHistory!['items'] as List;
-    if (items.isEmpty) return const Center(child: Text('No data'));
-    
-    List<FlSpot> spots = [];
-    // Items are usually newest first from API, so reverse them for chart
-    final reversed = items.reversed.toList();
-    for (int i = 0; i < reversed.length; i++) {
-      final rate = (reversed[i]['bidRate'] as num?)?.toDouble() ?? 0.0;
-      spots.add(FlSpot(i.toDouble(), rate));
-    }
-
-    return _buildLineChart(spots, Colors.blue);
+  List<FlSpot> _exchangeSpots() {
+    final items = _exchangeHistory?['items'];
+    if (items is! List || items.isEmpty) return [];
+    final rev = items.reversed.toList();
+    return [
+      for (int i = 0; i < rev.length; i++)
+        FlSpot(i.toDouble(), (rev[i]['bidRate'] as num?)?.toDouble() ?? 0),
+    ];
   }
 
-  Widget _buildGoldChart() {
-    if (_goldHistory == null || _goldHistory!['items'] == null) {
-      return const Center(child: Text('No data'));
-    }
-    final items = _goldHistory!['items'] as List;
-    if (items.isEmpty) return const Center(child: Text('No data'));
-    
-    List<FlSpot> spots = [];
-    final reversed = items.reversed.toList();
-    for (int i = 0; i < reversed.length; i++) {
-      final price = (reversed[i]['price'] as num?)?.toDouble() ?? 0.0;
-      spots.add(FlSpot(i.toDouble(), price));
-    }
-
-    return _buildLineChart(spots, Colors.amber);
+  List<FlSpot> _goldSpots() {
+    final items = _goldHistory?['items'];
+    if (items is! List || items.isEmpty) return [];
+    final rev = items.reversed.toList();
+    return [
+      for (int i = 0; i < rev.length; i++)
+        FlSpot(i.toDouble(), (rev[i]['price'] as num?)?.toDouble() ?? 0),
+    ];
   }
 
-  Widget _buildLineChart(List<FlSpot> spots, Color lineColor) {
-    if (spots.isEmpty) return const SizedBox.shrink();
-    
+  Widget _buildEquityChart(BuildContext context) {
+    final c = context.colors;
+    final spots = _equitySpots();
+    if (spots.isEmpty) {
+      return _emptyChart(context, 'Record a trade to see your equity curve');
+    }
+    final trendUp = spots.last.y >= spots.first.y;
+    final color = trendUp ? c.profit : c.loss;
+    return _lineChart(spots, color, fill: true);
+  }
+
+  Widget _miniChartCard(BuildContext context, String title, List<FlSpot> spots, Color color) {
+    final c = context.colors;
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            height: 60,
+            child: spots.isEmpty
+                ? Center(child: Text('—', style: TextStyle(color: c.textMuted)))
+                : _lineChart(spots, color, fill: true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyChart(BuildContext context, String msg) {
+    final c = context.colors;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.show_chart_rounded, size: 32, color: c.textMuted),
+          const SizedBox(height: AppSpacing.sm),
+          Text(msg, style: TextStyle(color: c.textMuted, fontSize: 13), textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  Widget _lineChart(List<FlSpot> spots, Color color, {bool fill = false}) {
     double minY = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
     double maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    
-    // Add padding to Y axis
-    final padding = (maxY - minY) * 0.1;
-    if (padding == 0) {
+    final pad = (maxY - minY) * 0.12;
+    if (pad == 0) {
       minY -= 10;
       maxY += 10;
     } else {
-      minY -= padding;
-      maxY += padding;
+      minY -= pad;
+      maxY += pad;
     }
 
     return LineChart(
       LineChartData(
-        gridData: FlGridData(show: false),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
+        gridData: const FlGridData(show: false),
+        titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
+        lineTouchData: const LineTouchData(enabled: false),
         minX: 0,
         maxX: (spots.length - 1).toDouble(),
         minY: minY,
@@ -449,13 +549,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: lineColor,
-            barWidth: 2,
+            color: color,
+            barWidth: 2.5,
             isStrokeCapRound: true,
-            dotData: FlDotData(show: false),
+            dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
-              show: true,
-              color: lineColor.withAlpha(26), // 10% opacity
+              show: fill,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0.0)],
+              ),
             ),
           ),
         ],
@@ -463,100 +567,160 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMarketMovers(AppLocalizations l10n, NumberFormat nf) {
-    return Card(
-      color: const Color(0xFF151B2C),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF24304F)),
-      ),
-      child: _topTickers.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: Text(l10n.noRankData, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-              ),
-            )
-          : ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _topTickers.length > 5 ? 5 : _topTickers.length,
-              separatorBuilder: (context, index) => const Divider(color: Color(0xFF24304F), height: 1),
-              itemBuilder: (context, index) {
-                final item = _topTickers[index];
-                final name = item['ticker'] ?? '';
-                final pnl = item['realisedPnl'] ?? 0;
-                return ListTile(
-                  title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  trailing: Text(
-                    '+${nf.format(pnl)}',
-                    style: const TextStyle(color: emerald, fontWeight: FontWeight.bold),
-                  ),
-                );
-              },
-            ),
-    );
-  }
-
-  Widget _buildLockedPrompt(AppLocalizations l10n) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF111827).withValues(alpha: 0.8),
-            const Color(0xFF0F172A).withValues(alpha: 0.95),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  // ── Top movers ──────────────────────────────────────────────────────
+  Widget _buildMovers(BuildContext context, AppLocalizations l10n) {
+    final c = context.colors;
+    if (_topTickers.isEmpty) {
+      return AppCard(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: Text(l10n.noRankData, style: TextStyle(color: c.textMuted, fontSize: 13)),
+          ),
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
+      );
+    }
+    final items = _topTickers.take(5).toList();
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
-              border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                  blurRadius: 20,
-                  spreadRadius: 0,
-                )
-              ],
-            ),
-            child: const Center(
-              child: Text('🔒', style: TextStyle(fontSize: 28)),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Sign in to view your dashboard',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Sign in with your Google account to record trades, track your realized and unrealized profits, and see matching lots.',
-            style: TextStyle(
-              color: Color(0xFF9CA3AF),
-              fontSize: 14,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0)
+              Divider(height: 1, thickness: 1, color: c.border.withValues(alpha: 0.6), indent: 52),
+            _moverRow(context, items[i], i + 1),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _moverRow(BuildContext context, dynamic item, int rank) {
+    final c = context.colors;
+    final name = (item['ticker'] ?? '').toString();
+    final pnl = (item['realisedPnl'] as num?) ?? 0;
+    final ccy = (item['currency'] as String?) ?? 'KHR';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+      child: Row(
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.surfaceAlt,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            ),
+            child: Text('$rank',
+                style: TextStyle(color: c.textMuted, fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(name,
+                style: TextStyle(color: c.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
+          ),
+          PnlChip(value: pnl, currency: ccy),
+        ],
+      ),
+    );
+  }
+}
+
+/// Guest / signed-out landing hero, restyled with the design system.
+class _GuestHero extends StatelessWidget {
+  final AppLocalizations l10n;
+  const _GuestHero({required this.l10n});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    Widget feature(String emoji, String title, String body) => Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: AppCard(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              color: c.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      Text(body, style: TextStyle(color: c.textMuted, fontSize: 13, height: 1.4)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.lg),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: c.primary.withValues(alpha: 0.15),
+              border: Border.all(color: c.primary.withValues(alpha: 0.25)),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+            ),
+            child: Text('🔐 Google Authenticated & Secure',
+                style: TextStyle(color: c.primary, fontWeight: FontWeight.w600, fontSize: 12)),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Text(
+          'Cambodia\'s premium investment\n& portfolio tracker',
+          style: TextStyle(
+              color: c.textPrimary, fontSize: 24, fontWeight: FontWeight.w800, height: 1.25),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'Log transactions, track real-time asset prices, and analyse matching lots with best-price cost-basis logic.',
+          style: TextStyle(color: c.textMuted, fontSize: 14, height: 1.5),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        feature('📊', 'Real-time prices', 'Public cached feed from the Cambodia Securities Exchange.'),
+        feature('📦', 'Best-price lot matching',
+            'Sales match your cheapest open buy lots first, maximising realised profit.'),
+        const SizedBox(height: AppSpacing.lg),
+        AppCard(
+          gradient: c.primaryGradient,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xxl),
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.18),
+                ),
+                child: const Center(child: Text('🔒', style: TextStyle(fontSize: 26))),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              const Text('Sign in to view your dashboard',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Use your Google account to record trades and track realised & unrealised profit.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, height: 1.5),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
