@@ -4,9 +4,12 @@ import 'l10n/app_localizations.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/portfolio_screen.dart';
 import 'screens/add_trade_screen.dart';
-import 'screens/history_screen.dart';
+import 'screens/watchlist_screen.dart';
+import 'screens/account_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
+import 'dart:ui';
+
 
 void main() {
   runApp(const CsxTradingJournalApp());
@@ -54,11 +57,6 @@ class _CsxTradingJournalAppState extends State<CsxTradingJournalApp> {
           backgroundColor: Color(0xFF0F172A),
           elevation: 0,
         ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF0F172A),
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
-        ),
       ),
       home: _ready
           ? MainLayout(currentLocale: _locale, onLocaleChanged: _setLocale)
@@ -91,7 +89,6 @@ class _MainLayoutState extends State<MainLayout> {
   // newly signed-in (or signed-out) user's data.
   final GlobalKey<State> _dashKey = GlobalKey();
   final GlobalKey<State> _portKey = GlobalKey();
-  final GlobalKey<State> _histKey = GlobalKey();
 
   @override
   void initState() {
@@ -108,7 +105,6 @@ class _MainLayoutState extends State<MainLayout> {
   void _onAuthChanged() {
     _dashKey.currentState?.setState(() {});
     _portKey.currentState?.setState(() {});
-    _histKey.currentState?.setState(() {});
   }
 
   void _onTabTapped(int index) {
@@ -141,14 +137,16 @@ class _MainLayoutState extends State<MainLayout> {
                     setState(() {});
                   },
                 ),
-          isGuest ? const LoginScreen() : HistoryScreen(key: _histKey),
+          isGuest ? const LoginScreen() : const WatchlistScreen(),
+          isGuest ? const LoginScreen() : const AccountScreen(),
         ];
 
         final titles = [
           l10n.titleDashboard,
           l10n.titlePortfolio,
           l10n.titleAddTrade,
-          l10n.titleTradeLedger,
+          'Watchlist',
+          'Account',
         ];
 
         return Scaffold(
@@ -184,7 +182,7 @@ class _MainLayoutState extends State<MainLayout> {
                 padding: const EdgeInsets.only(right: 12),
                 child: Center(
                   child: isGuest
-                      ? Text(l10n.guestLabel, style: const TextStyle(color: Colors.grey, fontSize: 13))
+                      ? const SizedBox.shrink() // Removed "Guest" label entirely
                       : Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
@@ -217,39 +215,106 @@ class _MainLayoutState extends State<MainLayout> {
               ),
             ],
           ),
-          body: IndexedStack(
-            index: _currentIndex,
-            children: screens,
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: _onTabTapped,
-            type: BottomNavigationBarType.fixed,
-            items: [
-              BottomNavigationBarItem(
-                icon: const Icon(Icons.dashboard_outlined),
-                activeIcon: const Icon(Icons.dashboard),
-                label: l10n.navDashboard,
+          body: Stack(
+            children: [
+              IndexedStack(
+                index: _currentIndex,
+                children: screens,
               ),
-              BottomNavigationBarItem(
-                icon: const Icon(Icons.business_center_outlined),
-                activeIcon: const Icon(Icons.business_center),
-                label: l10n.navPortfolio,
-              ),
-              BottomNavigationBarItem(
-                icon: const Icon(Icons.add_box_outlined),
-                activeIcon: const Icon(Icons.add_box),
-                label: l10n.navRecord,
-              ),
-              BottomNavigationBarItem(
-                icon: const Icon(Icons.history_edu_outlined),
-                activeIcon: const Icon(Icons.history_edu),
-                label: l10n.navLedger,
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: SafeArea(
+                  child: Container(
+                    height: 66,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D121E).withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 40,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(icon: Icons.dashboard_outlined, label: l10n.navDashboard, index: 0),
+                            _buildNavItem(icon: Icons.business_center_outlined, label: l10n.navPortfolio, index: 1),
+                            
+                            // Center Record FAB
+                            GestureDetector(
+                              onTap: () => _onTabTapped(2),
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF3B82F6).withOpacity(0.4),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(Icons.add, color: Colors.white, size: 28),
+                              ),
+                            ),
+                            
+                            _buildNavItem(icon: Icons.star_border, label: 'Watchlist', index: 3),
+                            _buildNavItem(icon: Icons.person_outline, label: 'Account', index: 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+    final isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => _onTabTapped(index),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? Colors.blue : const Color(0xFF94A3B8),
+            size: 24,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.blue : const Color(0xFF94A3B8),
+              fontSize: 10,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
