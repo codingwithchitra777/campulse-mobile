@@ -39,10 +39,11 @@ class AuthService {
   Future<void> _ensureGoogleInitialized() async {
     if (_googleInitialized) return;
 
-    GoogleSignIn.instance.onCurrentUserChanged.listen((GoogleSignInAccount? account) async {
-      if (account != null) {
+    GoogleSignIn.instance.authenticationEvents.listen((event) async {
+      if (event is GoogleSignInAuthenticationEventSignIn) {
+        final account = event.user;
         try {
-          final auth = await account.authentication;
+          final auth = account.authentication;
           final idToken = auth.idToken;
           if (idToken != null) {
             final res = await ApiService.instance.googleLogin(idToken);
@@ -109,7 +110,7 @@ class AuthService {
     // On web, the GIS renderButton handles the sign in popup directly.
     // On mobile, we trigger it manually. The stream listener above handles the rest.
     if (!kIsWeb) {
-      await GoogleSignIn.instance.signIn();
+      await GoogleSignIn.instance.authenticate();
     }
   }
 
