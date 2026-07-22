@@ -9,19 +9,25 @@ class GoogleProfile {
   final String name;
   final String? email;
 
+  /// Google account avatar URL (from the signed-in account), shown in the
+  /// top-left app-bar avatar + the drawer header. Null → initials fallback.
+  final String? photoUrl;
+
   /// Backend-issued JWT. Sent as `Authorization: Bearer <token>` on every
   /// authed request; persisted so the session survives an app restart.
   final String? token;
 
-  const GoogleProfile({required this.userId, required this.name, this.email, this.token});
+  const GoogleProfile(
+      {required this.userId, required this.name, this.email, this.photoUrl, this.token});
 
   Map<String, dynamic> toJson() =>
-      {'userId': userId, 'name': name, 'email': email, 'token': token};
+      {'userId': userId, 'name': name, 'email': email, 'photoUrl': photoUrl, 'token': token};
 
   factory GoogleProfile.fromJson(Map<String, dynamic> json) => GoogleProfile(
         userId: json['userId'] as String,
         name: json['name'] as String,
         email: json['email'] as String?,
+        photoUrl: json['photoUrl'] as String?,
         token: json['token'] as String?,
       );
 }
@@ -58,6 +64,9 @@ class AuthService {
                 userId: res['userId'] as String,
                 name: (res['userName'] as String?) ?? 'Google User',
                 email: res['email'] as String?,
+                // The backend response has no avatar; take it from the Google
+                // account directly.
+                photoUrl: account.photoUrl,
                 token: res['token'] as String?,
               );
               _applyProfile(p);

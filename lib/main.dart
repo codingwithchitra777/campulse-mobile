@@ -6,13 +6,13 @@ import 'screens/dashboard_screen.dart';
 import 'screens/portfolio_screen.dart';
 import 'screens/add_trade_screen.dart';
 import 'screens/history_screen.dart';
-import 'screens/account_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 import 'theme/locale_controller.dart';
 import 'theme/theme_controller.dart';
+import 'widgets/app_drawer.dart';
 
 void main() {
   runApp(const CamPulseApp());
@@ -112,7 +112,6 @@ class _MainLayoutState extends State<MainLayout> {
             onTradeAdded: () => _go(0),
           )),
           guarded(HistoryScreen(key: ValueKey('hist_$userKey'))),
-          guarded(AccountScreen(key: ValueKey('acct_$userKey'))),
         ];
 
         final titles = [
@@ -120,11 +119,21 @@ class _MainLayoutState extends State<MainLayout> {
           l10n.titlePortfolio,
           l10n.titleAddTrade,
           'History',
-          'Account',
         ];
 
         return Scaffold(
-          appBar: AppBar(title: Text(titles[_currentIndex])),
+          drawer: const AppDrawer(),
+          appBar: AppBar(
+            titleSpacing: 0,
+            title: Text(titles[_currentIndex]),
+            leading: Builder(
+              builder: (context) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Scaffold.of(context).openDrawer(),
+                child: Center(child: ProfileAvatar(profile: profile, radius: 18)),
+              ),
+            ),
+          ),
           body: Stack(
             children: [
               IndexedStack(index: _currentIndex, children: screens),
@@ -208,13 +217,6 @@ class _FloatingNav extends StatelessWidget {
                     label: 'History',
                     selected: currentIndex == 3,
                     onTap: () => onTap(3),
-                  ),
-                  _NavItem(
-                    icon: Icons.person_outline_rounded,
-                    activeIcon: Icons.person_rounded,
-                    label: 'Account',
-                    selected: currentIndex == 4,
-                    onTap: () => onTap(4),
                   ),
                 ],
               ),
