@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -187,9 +188,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildQuickStats(context, primaryCcy, primary),
         const SizedBox(height: AppSpacing.xl),
         SectionHeader(title: l10n.portfolioPerformance),
-        AppCard(
-          child: SizedBox(height: 200, child: _buildEquityChart(context)),
-        ),
+        AppCard(child: _buildEquityChart(context, primaryCcy)),
         const SizedBox(height: AppSpacing.xl),
         SectionHeader(title: l10n.marketMovers),
         _buildMovers(context, l10n),
@@ -200,6 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: _miniChartCard(
                 context, l10n.exchangeRateTrend,
                 _exchangeSpots(), context.colors.primary,
+                valueLabel: _exchangeLatest(),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -207,6 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: _miniChartCard(
                 context, l10n.goldPriceTrend,
                 _goldSpots(), context.colors.warning,
+                valueLabel: _goldLatest(),
               ),
             ),
           ],
@@ -502,14 +503,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ── Charts ──────────────────────────────────────────────────────────
-  List<FlSpot> _equitySpots() {
+
+  /// Aligned equity (market value) + invested (cost basis) series on a shared
+  /// date axis, with the per-point dates for tooltips. `invested` is
+  /// forward-filled from the (sparser, per-trade-date) investment series onto
+  /// the (per-snapshot-day) equity dates.
+  ({List<FlSpot> value, List<FlSpot> invested, List<String> dates}) _equitySeries() {
     final equity = _chartsData?['equity'];
-    if (equity is! List || equity.isEmpty) return [];
-    // Each entry is {date, value} — pull the numeric value.
-    return [
-      for (int i = 0; i < equity.length; i++)
-        FlSpot(i.toDouble(), (equity[i]['value'] as num?)?.toDouble() ?? 0),
-    ];
+    if (equity is! List || equity.isEmpty) {
+      return (value: const [], invested: const [], dates: const []);
+    }
+    final investment = (_chartsData?['investment'] as List?) ?? const [];
+    final value = <FlSpot>[];
+    final invested = <FlSpot>[];
+    final dates = <String>[];
+    int inv = 0;
+    double lastInvested = 0;
+    for (int i = 0; i < equity.length; i++) {
+      final date = (equity[i]['date'] ?? '').toString();
+      final val = (equity[i]['value'] as num?)?.toDouble() ?? 0;
+      while (inv < investment.length &&
+          (investment[inv]['date'] ?? '').toString().compareTo(date) <= 0) {
+        lastInvested = (investment[inv]['invested'] as num?)?.toDouble() ?? lastInvested;
+        inv++;
+      }
+      value.add(FlSpot(i.toDouble(), val));
+      invested.add(FlSpot(i.toDouble(), lastInvested));
+      dates.add(date);
+    }
+    return (value: value, invested: invested, dates: dates);
+  }
+
+  String? _exchangeLatest() {
+    final s = _exchangeSpots();
+    if (s.isEmpty) return null;
+    return NumberFormat('#,##0.0').format(s.last.y);
+  }
+
+  String? _goldLatest() {
+    final s = _goldSpots();
+    if (s.isEmpty) return null;
+    return Money.format(s.last.y, 'USD');
   }
 
   List<FlSpot> _exchangeSpots() {
@@ -532,18 +566,149 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
   }
 
-  Widget _buildEquityChart(BuildContext context) {
+  Widget _buildEquityChart(BuildContext context, String ccy) {
     final c = context.colors;
-    final spots = _equitySpots();
-    if (spots.isEmpty) {
-      return _emptyChart(context, 'Record a trade to see your equity curve');
+    final series = _equitySeries();
+    if (series.value.isEmpty) {
+      return SizedBox(height: 200, child: _emptyChart(context, 'Record a trade to see your equity curve'));
     }
-    final trendUp = spots.last.y >= spots.first.y;
-    final color = trendUp ? c.profit : c.loss;
-    return _lineChart(spots, color, fill: true);
+    final valueColor = series.value.last.y >= series.value.first.y ? c.profit : c.loss;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Legend + current value
+        Row(
+          children: [
+            _legendDot(valueColor),
+            const SizedBox(width: 5),
+            Text('Value', style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(width: AppSpacing.md),
+            _legendDot(c.textMuted),
+            const SizedBox(width: 5),
+            Text('Invested', style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+            const Spacer(),
+            Text(Money.compact(series.value.last.y, ccy),
+                style: TextStyle(color: c.textPrimary, fontSize: 14, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(height: 190, child: _equityLineChart(context, series, valueColor, ccy)),
+      ],
+    );
   }
 
-  Widget _miniChartCard(BuildContext context, String title, List<FlSpot> spots, Color color) {
+  Widget _legendDot(Color color) =>
+      Container(width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+
+  Widget _equityLineChart(BuildContext context,
+      ({List<FlSpot> value, List<FlSpot> invested, List<String> dates}) series, Color valueColor, String ccy) {
+    final c = context.colors;
+    final all = [...series.value, ...series.invested];
+    double minY = all.map((s) => s.y).reduce((a, b) => a < b ? a : b);
+    double maxY = all.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final pad = (maxY - minY) * 0.15;
+    minY = (minY - (pad == 0 ? 10 : pad)).clamp(0, double.infinity).toDouble();
+    maxY += pad == 0 ? 10 : pad;
+    final interval = (maxY - minY) <= 0 ? 1.0 : (maxY - minY) / 3;
+
+    String tooltipDate(int i) {
+      if (i < 0 || i >= series.dates.length) return '';
+      final d = DateTime.tryParse(series.dates[i]);
+      return d == null ? series.dates[i] : DateFormat('d MMM yyyy').format(d);
+    }
+
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (series.value.length - 1).toDouble(),
+        minY: minY,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: interval,
+          getDrawingHorizontalLine: (v) => FlLine(color: c.border.withValues(alpha: 0.5), strokeWidth: 1),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 46,
+              interval: interval,
+              getTitlesWidget: (value, meta) => Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Text(Money.compact(value, ccy),
+                    style: TextStyle(color: c.textMuted, fontSize: 9), textAlign: TextAlign.right),
+              ),
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(
+          enabled: true,
+          getTouchedSpotIndicator: (barData, indexes) => indexes
+              .map((i) => TouchedSpotIndicatorData(
+                    FlLine(color: c.textMuted.withValues(alpha: 0.4), strokeWidth: 1),
+                    FlDotData(show: true, getDotPainter: (s, p, b, ix) =>
+                        FlDotCirclePainter(radius: 3.5, color: barData.color ?? valueColor, strokeWidth: 0)),
+                  ))
+              .toList(),
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => c.surfaceAlt,
+            getTooltipItems: (spots) => [
+              for (int j = 0; j < spots.length; j++)
+                LineTooltipItem(
+                  '${spots[j].barIndex == 0 ? 'Value' : 'Invested'}  ${Money.compact(spots[j].y, ccy)}'
+                  '${j == 0 ? '\n${tooltipDate(spots[j].spotIndex)}' : ''}',
+                  TextStyle(
+                    color: spots[j].barIndex == 0 ? valueColor : c.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        lineBarsData: [
+          // Value (filled)
+          LineChartBarData(
+            spots: series.value,
+            isCurved: true,
+            color: valueColor,
+            barWidth: 2.5,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [valueColor.withValues(alpha: 0.26), valueColor.withValues(alpha: 0.0)],
+              ),
+            ),
+          ),
+          // Invested (dashed, no fill)
+          LineChartBarData(
+            spots: series.invested,
+            isCurved: true,
+            color: c.textMuted,
+            barWidth: 1.5,
+            isStrokeCapRound: true,
+            dashArray: const [5, 4],
+            dotData: const FlDotData(show: false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniChartCard(BuildContext context, String title, List<FlSpot> spots, Color color,
+      {String? valueLabel}) {
     final c = context.colors;
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -553,9 +718,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(title,
               style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
               maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(valueLabel ?? '—',
+              style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
-            height: 60,
+            height: 48,
             child: spots.isEmpty
                 ? Center(child: Text('—', style: TextStyle(color: c.textMuted)))
                 : _lineChart(spots, color, fill: true),
