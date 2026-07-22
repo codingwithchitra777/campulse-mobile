@@ -276,6 +276,42 @@ class ApiService {
     if (response.statusCode >= 400) throw Exception('Failed to remove from watchlist');
   }
 
+  // ── Journal (notes & tags on trades) ──────────────────────────────────
+
+  /// Set (or clear) the journal note/tags on a trade. Empty strings clear.
+  Future<Map<String, dynamic>> updateTradeJournal(String tradeId, {String? note, String? tags}) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/api/trades/$tradeId/journal'),
+      headers: _headers,
+      body: jsonEncode({'note': note ?? '', 'tags': tags ?? ''}),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(decoded['detail'] ?? 'Failed to save journal entry');
+    }
+    return decoded as Map<String, dynamic>;
+  }
+
+  // ── AI / rule coach (descriptive insights over the portfolio snapshot) ─
+
+  /// Free rule-based insight (+ any cached AI pass). Never fails on billing.
+  Future<Map<String, dynamic>> getInsights() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/ai/insights'), headers: _headers);
+    if (response.statusCode == 200) return jsonDecode(response.body) as Map<String, dynamic>;
+    throw Exception('Failed to load insights');
+  }
+
+  /// The paid AI pass — rate-limited server-side. Throws with the server's
+  /// message on 503 (unconfigured) / 409 (thin data) / 429 (once-a-day).
+  Future<Map<String, dynamic>> refreshInsight() async {
+    final response = await http.post(Uri.parse('$baseUrl/api/ai/insights'), headers: _headers);
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(decoded['detail'] ?? 'The AI coach is unavailable right now.');
+    }
+    return decoded as Map<String, dynamic>;
+  }
+
   // ── Price alerts (Telegram-delivered on a price cross) ────────────────
 
   /// The user's alerts plus `deliverable` (false when no Telegram is linked).

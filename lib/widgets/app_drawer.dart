@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../screens/ai_coach_screen.dart';
 import '../screens/alerts_screen.dart';
 import '../screens/analytics_screen.dart';
+import '../screens/journal_screen.dart';
 import '../screens/loans_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../screens/watchlist_screen.dart';
@@ -163,8 +165,7 @@ class AppDrawer extends StatelessWidget {
                         iconColor: const Color(0xFF8B5CF6),
                         title: 'Journal',
                         subtitle: 'Notes & tags on your trades',
-                        soon: true,
-                        onTap: () => _pushPlaceholder(context, 'Journal', Icons.edit_note_rounded),
+                        onTap: () => _push(context, const JournalScreen()),
                       ),
                       _divider(c),
                       HubTile(
@@ -172,8 +173,7 @@ class AppDrawer extends StatelessWidget {
                         iconColor: const Color(0xFF06B6D4),
                         title: 'AI Coach',
                         subtitle: 'Descriptive read of your patterns',
-                        soon: true,
-                        onTap: () => _pushPlaceholder(context, 'AI Coach', Icons.psychology_rounded),
+                        onTap: () => _push(context, const AiCoachScreen()),
                       ),
                     ],
                   ),
