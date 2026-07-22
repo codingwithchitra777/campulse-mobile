@@ -7,6 +7,7 @@ import '../theme/theme_controller.dart';
 import '../widgets/app_card.dart';
 import '../widgets/hub_tile.dart';
 import '../widgets/section_header.dart';
+import 'alerts_screen.dart';
 import 'analytics_screen.dart';
 import 'loans_screen.dart';
 import 'placeholder_screen.dart';
@@ -224,8 +225,10 @@ class AccountScreen extends StatelessWidget {
                 iconColor: const Color(0xFFEF4444),
                 title: 'Price Alerts',
                 subtitle: 'Get pinged on Telegram at your target',
-                soon: true,
-                onTap: () => _openPlaceholder(context, 'Price Alerts', Icons.notifications_active_rounded),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AlertsScreen()),
+                ),
               ),
               _divider(c),
               HubTile(

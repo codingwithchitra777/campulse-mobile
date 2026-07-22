@@ -276,6 +276,45 @@ class ApiService {
     if (response.statusCode >= 400) throw Exception('Failed to remove from watchlist');
   }
 
+  // ── Price alerts (Telegram-delivered on a price cross) ────────────────
+
+  /// The user's alerts plus `deliverable` (false when no Telegram is linked).
+  Future<Map<String, dynamic>> getAlerts() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/alerts'), headers: _headers);
+    if (response.statusCode == 200) return jsonDecode(response.body) as Map<String, dynamic>;
+    throw Exception('Failed to load alerts');
+  }
+
+  /// Create an alert. [direction] (above|below) is optional — the backend
+  /// derives it from the current price when omitted.
+  Future<Map<String, dynamic>> createAlert(
+    String symbol, {
+    required String market,
+    required String currency,
+    required num targetPrice,
+    String? direction,
+  }) async {
+    final body = <String, dynamic>{
+      'symbol': symbol.toUpperCase(),
+      'market': market,
+      'currency': currency,
+      'targetPrice': targetPrice,
+      if (direction != null) 'direction': direction,
+    };
+    final response = await http.post(Uri.parse('$baseUrl/api/alerts'),
+        headers: _headers, body: jsonEncode(body));
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(decoded['detail'] ?? 'Failed to create alert');
+    }
+    return decoded as Map<String, dynamic>;
+  }
+
+  Future<void> deleteAlert(String alertId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/api/alerts/$alertId'), headers: _headers);
+    if (response.statusCode >= 400) throw Exception('Failed to delete alert');
+  }
+
   // ── Loans (personal debt ledger, kept separate from trading) ──────────
 
   /// The user's loans. Returns `{items, deliverable}` — deliverable is false
