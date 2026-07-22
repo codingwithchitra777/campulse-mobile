@@ -32,6 +32,13 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // Name the built APK `CamPulse.apk` instead of the default `app-release.apk`.
+    applicationVariants.all {
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "CamPulse.apk"
+        }
+    }
 }
 
 kotlin {
