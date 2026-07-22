@@ -276,6 +276,34 @@ class ApiService {
     if (response.statusCode >= 400) throw Exception('Failed to remove from watchlist');
   }
 
+  // ── Account linking (Telegram) ────────────────────────────────────────
+
+  /// The user's linked Telegram accounts (`aliasUserId`, `userName`, `chatId`,
+  /// `linkedAt`).
+  Future<List<dynamic>> getLinks() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/auth/links'), headers: _headers);
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return (decoded['links'] as List?) ?? const [];
+    }
+    throw Exception('Failed to load linked accounts');
+  }
+
+  /// Mint a one-time link code + the Telegram deep link to open.
+  Future<Map<String, dynamic>> createLinkCode() async {
+    final response = await http.post(Uri.parse('$baseUrl/api/auth/link/code'), headers: _headers);
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(decoded['detail'] ?? 'Failed to create link code');
+    }
+    return decoded as Map<String, dynamic>;
+  }
+
+  Future<void> removeLink(String aliasUserId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/api/auth/links/$aliasUserId'), headers: _headers);
+    if (response.statusCode >= 400) throw Exception('Failed to disconnect account');
+  }
+
   // ── Journal (notes & tags on trades) ──────────────────────────────────
 
   /// Set (or clear) the journal note/tags on a trade. Empty strings clear.

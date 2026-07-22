@@ -3,9 +3,9 @@ import '../l10n/app_localizations.dart';
 import '../screens/ai_coach_screen.dart';
 import '../screens/alerts_screen.dart';
 import '../screens/analytics_screen.dart';
+import '../screens/connected_accounts_screen.dart';
 import '../screens/journal_screen.dart';
 import '../screens/loans_screen.dart';
-import '../screens/placeholder_screen.dart';
 import '../screens/watchlist_screen.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
@@ -24,14 +24,6 @@ class AppDrawer extends StatelessWidget {
   void _push(BuildContext context, Widget page) {
     Navigator.pop(context); // close the drawer first
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-  }
-
-  void _pushPlaceholder(BuildContext context, String title, IconData icon) {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => PlaceholderScreen(title: title, icon: icon)),
-    );
   }
 
   Future<void> _confirmSignOut(BuildContext context) async {
@@ -218,8 +210,7 @@ class AppDrawer extends StatelessWidget {
                         icon: Icons.link_rounded,
                         title: 'Connected accounts',
                         subtitle: 'Link Telegram for alerts & the bot',
-                        soon: true,
-                        onTap: () => _pushPlaceholder(context, 'Connected accounts', Icons.link_rounded),
+                        onTap: () => _push(context, const ConnectedAccountsScreen()),
                       ),
                     ],
                   ),
