@@ -140,20 +140,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Row(
             children: [
-              // Buy/Sell direction icon
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: sideColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                ),
-                child: Icon(
-                  isBuy ? Icons.south_west_rounded : Icons.north_east_rounded,
-                  color: sideColor,
-                  size: 20,
-                ),
-              ),
+              // Ticker coin avatar with a buy/sell direction badge in the corner.
+              _tradeCoin(context, (t['ticker'] ?? '').toString(), market, isBuy, sideColor),
               const SizedBox(width: AppSpacing.md),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,6 +198,66 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   String _qty(num q) => q == q.roundToDouble() ? q.toInt().toString() : q.toString();
+
+  /// Ticker coin (market-tinted gradient disc with initials) plus a small
+  /// buy/sell arrow badge in the bottom-right corner — matches the portfolio
+  /// coin look while preserving the trade direction cue.
+  Widget _tradeCoin(BuildContext context, String ticker, String market, bool isBuy, Color sideColor) {
+    final color = switch (market) {
+      'US' => const Color(0xFF8B5CF6),
+      'GOLD_KH' => const Color(0xFFF59E0B),
+      _ => context.colors.primary,
+    };
+    final initials = ticker.isEmpty
+        ? '?'
+        : ticker.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').padRight(2).substring(0, 2).toUpperCase();
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [color.withValues(alpha: 0.9), color.withValues(alpha: 0.55)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3)),
+              ],
+            ),
+            child: Text(initials,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 18,
+              height: 18,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: sideColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: context.colors.surface, width: 2),
+              ),
+              child: Icon(
+                isBuy ? Icons.south_west_rounded : Icons.north_east_rounded,
+                color: Colors.white,
+                size: 10,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _marketBadge(BuildContext context, String market) {
     final color = switch (market) {
