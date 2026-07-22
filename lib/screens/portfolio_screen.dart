@@ -172,7 +172,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   Widget _summaryCard(BuildContext context, String ccy,
       {required double value, required double invested, required double unrealised}) {
     final c = context.colors;
-    final segments = _allocationSegments(ccy, value);
+    final legend = _allocationLegend(ccy, value);
 
     return AppCard(
       gradient: c.primaryGradient,
@@ -181,18 +181,20 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              _coin(ccy),
+              const SizedBox(width: AppSpacing.sm),
               Text('$ccy PORTFOLIO',
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5)),
+              const Spacer(),
               _pill(context, Money.format(unrealised, ccy, signed: true)),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
           Text(Money.format(value, ccy),
               style: const TextStyle(
                   color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800, height: 1.1)),
@@ -202,7 +204,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
             child: Row(
               children: [
-                for (final s in segments)
+                for (final s in legend)
                   Expanded(
                     flex: (s.fraction * 1000).round().clamp(1, 1000),
                     child: Container(height: 8, color: s.color),
@@ -210,6 +212,32 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               ],
             ),
           ),
+          if (legend.length > 1 || (legend.isNotEmpty && legend.first.label.isNotEmpty)) ...[
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: 6,
+              children: [
+                for (final s in legend.where((s) => s.label.isNotEmpty))
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(color: s.color, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 5),
+                      Text('${s.label} ${(s.fraction * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+              ],
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
@@ -252,17 +280,48 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   int _holdingsIn(String ccy) =>
       _portfolio.where((h) => ((h['currency'] as String?) ?? 'KHR') == ccy && ((h['remainingQty'] as num?) ?? 0) > 0).length;
 
-  List<_Segment> _allocationSegments(String ccy, double total) {
-    if (total <= 0) return [_Segment(1, Colors.white.withValues(alpha: 0.3))];
+  /// Top holdings as coloured segments (with ticker labels) for the allocation
+  /// bar + legend. Anything past the palette size is folded into an "Other" tail.
+  List<_Segment> _allocationLegend(String ccy, double total) {
+    if (total <= 0) return [_Segment(1, Colors.white.withValues(alpha: 0.3), '')];
     final holdings = _portfolio
         .where((h) => ((h['currency'] as String?) ?? 'KHR') == ccy && _value(h) > 0)
         .toList()
       ..sort((a, b) => _value(b).compareTo(_value(a)));
+    const maxLabelled = 4;
     final segs = <_Segment>[];
+    double otherFraction = 0;
     for (int i = 0; i < holdings.length; i++) {
-      segs.add(_Segment(_value(holdings[i]) / total, _allocPalette[i % _allocPalette.length]));
+      final frac = _value(holdings[i]) / total;
+      if (i < maxLabelled) {
+        segs.add(_Segment(frac, _allocPalette[i % _allocPalette.length],
+            (holdings[i]['ticker'] ?? '').toString()));
+      } else {
+        otherFraction += frac;
+      }
     }
-    return segs.isEmpty ? [_Segment(1, Colors.white.withValues(alpha: 0.3))] : segs;
+    if (otherFraction > 0) {
+      segs.add(_Segment(otherFraction, Colors.white.withValues(alpha: 0.35), 'Other'));
+    }
+    return segs.isEmpty ? [_Segment(1, Colors.white.withValues(alpha: 0.3), '')] : segs;
+  }
+
+  /// A coin-style circular badge showing the currency symbol (ByteTown token
+  /// look) — glassy white on the gradient card.
+  Widget _coin(String ccy) {
+    final symbol = ccy == 'USD' ? r'$' : '៛';
+    return Container(
+      width: 30,
+      height: 30,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+      ),
+      child: Text(symbol,
+          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+    );
   }
 
   // ── Position card ───────────────────────────────────────────────────
@@ -291,6 +350,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         children: [
           Row(
             children: [
+              _tickerCoin(context, (h['ticker'] ?? '').toString(), market),
+              const SizedBox(width: AppSpacing.md),
               Text('${h['ticker'] ?? ''}',
                   style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(width: AppSpacing.sm),
@@ -350,6 +411,37 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         Text(value,
             style: TextStyle(color: c.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
       ],
+    );
+  }
+
+  /// Round token avatar for a position — the ticker's first 1-2 letters on a
+  /// market-tinted disc (ByteTown coin look).
+  Widget _tickerCoin(BuildContext context, String ticker, String market) {
+    final color = switch (market) {
+      'US' => const Color(0xFF8B5CF6),
+      'GOLD_KH' => const Color(0xFFF59E0B),
+      _ => context.colors.primary,
+    };
+    final initials = ticker.isEmpty
+        ? '?'
+        : ticker.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').padRight(2).substring(0, 2).toUpperCase();
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [color.withValues(alpha: 0.9), color.withValues(alpha: 0.55)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Text(initials,
+          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
     );
   }
 
@@ -449,7 +541,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 class _Segment {
   final double fraction;
   final Color color;
-  _Segment(this.fraction, this.color);
+  final String label;
+  _Segment(this.fraction, this.color, this.label);
 }
 
 const _allocPalette = [
