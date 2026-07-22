@@ -4,14 +4,17 @@ import '../widgets/app_card.dart';
 import '../widgets/performance_chart.dart';
 import '../widgets/skeleton.dart';
 
+/// Result of a detail loader: an x-axis of dates plus 1–2 aligned series
+/// (e.g. Bid & Ask). Each series' values line up index-for-index with [dates].
+typedef DetailData = ({List<DateTime> dates, List<ChartSeries> series});
+
 /// A generic price/rate detail screen: loads a dated history and renders the
-/// shared [PerformanceChart] (range filter, right axis, period change %, tooltip).
-/// Reused for gold, the USD/KHR rate, and any watchlist symbol.
+/// shared [PerformanceChart] (range filter, right axis, period change %,
+/// tooltip). Reused for gold, the USD/KHR rate, and any watchlist symbol.
 class MarketDetailScreen extends StatefulWidget {
   final String title;
   final String subtitle;
-  final String seriesLabel;
-  final Future<List<MapEntry<DateTime, double>>> Function() loader;
+  final Future<DetailData> Function() loader;
   final String Function(num) formatFull;
   final String Function(num) formatCompact;
 
@@ -19,7 +22,6 @@ class MarketDetailScreen extends StatefulWidget {
     super.key,
     required this.title,
     required this.subtitle,
-    required this.seriesLabel,
     required this.loader,
     required this.formatFull,
     required this.formatCompact,
@@ -32,7 +34,7 @@ class MarketDetailScreen extends StatefulWidget {
 class _MarketDetailScreenState extends State<MarketDetailScreen> {
   bool _loading = true;
   List<DateTime> _dates = [];
-  List<double> _values = [];
+  List<ChartSeries> _series = [];
   String? _error;
 
   @override
@@ -50,8 +52,8 @@ class _MarketDetailScreenState extends State<MarketDetailScreen> {
       final data = await widget.loader();
       if (!mounted) return;
       setState(() {
-        _dates = [for (final e in data) e.key];
-        _values = [for (final e in data) e.value];
+        _dates = data.dates;
+        _series = data.series;
         _loading = false;
       });
     } catch (e) {
@@ -62,6 +64,8 @@ class _MarketDetailScreenState extends State<MarketDetailScreen> {
       });
     }
   }
+
+  bool get _hasData => _series.isNotEmpty && _series.first.values.length >= 2;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +98,7 @@ class _MarketDetailScreenState extends State<MarketDetailScreen> {
                   ),
                 ),
               )
-            else if (_values.length < 2)
+            else if (!_hasData)
               AppCard(
                 child: Center(
                   child: Padding(
@@ -114,7 +118,7 @@ class _MarketDetailScreenState extends State<MarketDetailScreen> {
               AppCard(
                 child: PerformanceChart(
                   dates: _dates,
-                  series: [ChartSeries(widget.seriesLabel, _values)],
+                  series: _series,
                   formatFull: widget.formatFull,
                   formatCompact: widget.formatCompact,
                   height: 240,

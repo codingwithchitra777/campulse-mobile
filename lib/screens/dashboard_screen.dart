@@ -282,20 +282,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => MarketDetailScreen(
         title: 'Gold · XAU-KH',
-        subtitle: 'USD per chi',
-        seriesLabel: 'Price',
+        subtitle: 'USD per chi · Bid / Ask',
         formatFull: (v) => Money.format(v, 'USD'),
         formatCompact: (v) => Money.compact(v, 'USD'),
         loader: () async {
           final h = await _api.getMarketPriceHistory('XAU-KH', days: 180);
-          final hist = (h['items'] as List?) ?? const [];
-          final out = <MapEntry<DateTime, double>>[];
-          for (final e in hist) {
-            final d = DateTime.tryParse((e['date'] ?? '').toString());
-            if (d != null && e['price'] != null) out.add(MapEntry(d, (e['price'] as num).toDouble()));
-          }
-          out.sort((a, b) => a.key.compareTo(b.key));
-          return out;
+          return _bidAskFromHistory(h['items'], dateKey: 'date',
+              bidKey: 'bidPrice', askKey: 'askPrice', fallbackKey: 'price');
         },
       ),
     ));
@@ -305,20 +298,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => MarketDetailScreen(
         title: 'USD / KHR',
-        subtitle: 'Exchange rate (bid)',
-        seriesLabel: 'Rate',
+        subtitle: 'Exchange rate · Bid / Ask',
         formatFull: (v) => NumberFormat('#,##0.00').format(v),
         formatCompact: (v) => NumberFormat('#,##0').format(v),
         loader: () async {
           final h = await _api.getExchangeRateHistory('USD', 'KHR', limit: 180);
-          final hist = (h['items'] as List?) ?? const [];
-          final out = <MapEntry<DateTime, double>>[];
-          for (final e in hist) {
-            final d = DateTime.tryParse((e['effectiveDate'] ?? '').toString());
-            if (d != null && e['bidRate'] != null) out.add(MapEntry(d, (e['bidRate'] as num).toDouble()));
-          }
-          out.sort((a, b) => a.key.compareTo(b.key));
-          return out;
+          return _bidAskFromHistory(h['items'], dateKey: 'effectiveDate',
+              bidKey: 'bidRate', askKey: 'askRate');
         },
       ),
     ));
@@ -332,22 +318,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (_) => MarketDetailScreen(
         title: symbol,
         subtitle: '${market == 'GOLD_KH' ? 'Gold' : market} · $ccy',
-        seriesLabel: 'Price',
         formatFull: (v) => Money.format(v, ccy),
         formatCompact: (v) => Money.compact(v, ccy),
         loader: () async {
           final h = await _api.getMarketPriceHistory(symbol, days: 180);
-          final hist = (h['items'] as List?) ?? const [];
-          final out = <MapEntry<DateTime, double>>[];
-          for (final e in hist) {
-            final d = DateTime.tryParse((e['date'] ?? '').toString());
-            if (d != null && e['price'] != null) out.add(MapEntry(d, (e['price'] as num).toDouble()));
-          }
-          out.sort((a, b) => a.key.compareTo(b.key));
-          return out;
+          return _bidAskFromHistory(h['items'], dateKey: 'date',
+              bidKey: 'bidPrice', askKey: 'askPrice', fallbackKey: 'price');
         },
       ),
     ));
+  }
+
+  /// Builds a Bid + Ask (or single-line) [DetailData] from a history list.
+  /// Ask collapses into the Bid line when it's absent or identical, so a
+  /// single-price feed shows one clean line instead of two overlapping ones.
+  DetailData _bidAskFromHistory(dynamic rawItems,
+      {required String dateKey, required String bidKey, required String askKey, String? fallbackKey}) {
+    final items = (rawItems as List?) ?? const [];
+    final sorted = [...items]
+      ..sort((a, b) => (a[dateKey] ?? '').toString().compareTo((b[dateKey] ?? '').toString()));
+    final dates = <DateTime>[];
+    final bid = <double>[];
+    final ask = <double>[];
+    var askDiffers = false;
+    for (final e in sorted) {
+      final d = DateTime.tryParse((e[dateKey] ?? '').toString());
+      if (d == null) continue;
+      final fb = fallbackKey == null ? null : (e[fallbackKey] as num?)?.toDouble();
+      final b = (e[bidKey] as num?)?.toDouble() ?? fb;
+      final a = (e[askKey] as num?)?.toDouble() ?? fb ?? b;
+      if (b == null) continue;
+      dates.add(d);
+      bid.add(b);
+      ask.add(a ?? b);
+      if (a != null && a != b) askDiffers = true;
+    }
+    return (
+      dates: dates,
+      series: askDiffers
+          ? [ChartSeries('Bid', bid), ChartSeries('Ask', ask, dashed: true)]
+          : [ChartSeries('Price', bid)],
+    );
   }
 
   Widget _greeting(BuildContext context) {
