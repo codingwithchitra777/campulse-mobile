@@ -244,6 +244,38 @@ class ApiService {
     throw Exception('Failed to load exchange rate history');
   }
 
+  // ── Watchlist (tracked symbols, live-quoted per market) ───────────────
+
+  /// Tracked symbols, each enriched with a live quote
+  /// (`price`, `change`, `changeDirection`: up|down|equal).
+  Future<List<dynamic>> getWatchlist() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/watchlist'), headers: _headers);
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return (decoded['items'] as List?) ?? const [];
+    }
+    throw Exception('Failed to load watchlist');
+  }
+
+  Future<void> addToWatchlist(String symbol, {required String market, required String currency}) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/watchlist'),
+      headers: _headers,
+      body: jsonEncode({'symbol': symbol.toUpperCase(), 'market': market, 'currency': currency}),
+    );
+    if (response.statusCode >= 400) {
+      final decoded = jsonDecode(response.body);
+      throw Exception(decoded['detail'] ?? 'Failed to add to watchlist');
+    }
+  }
+
+  Future<void> removeFromWatchlist(String symbol, {String market = 'CSX'}) async {
+    final uri = Uri.parse('$baseUrl/api/watchlist/${symbol.toUpperCase()}')
+        .replace(queryParameters: {'market': market});
+    final response = await http.delete(uri, headers: _headers);
+    if (response.statusCode >= 400) throw Exception('Failed to remove from watchlist');
+  }
+
   // ── Loans (personal debt ledger, kept separate from trading) ──────────
 
   /// The user's loans. Returns `{items, deliverable}` — deliverable is false

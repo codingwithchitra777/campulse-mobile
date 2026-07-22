@@ -10,6 +10,7 @@ import '../widgets/section_header.dart';
 import 'analytics_screen.dart';
 import 'loans_screen.dart';
 import 'placeholder_screen.dart';
+import 'watchlist_screen.dart';
 
 /// The Account hub — the home for every secondary feature. A profile header,
 /// a Tools list (features that live on the web today, coming to mobile), and
@@ -212,8 +213,10 @@ class AccountScreen extends StatelessWidget {
                 iconColor: const Color(0xFFF59E0B),
                 title: 'Watchlist',
                 subtitle: 'Track symbols you don\'t own yet',
-                soon: true,
-                onTap: () => _openPlaceholder(context, 'Watchlist', Icons.star_rounded),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WatchlistScreen()),
+                ),
               ),
               _divider(c),
               HubTile(
