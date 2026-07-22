@@ -105,7 +105,7 @@ class _MainLayoutState extends State<MainLayout> {
         Widget guarded(Widget page) => isGuest ? const LoginScreen() : page;
 
         final screens = <Widget>[
-          DashboardScreen(key: ValueKey('dash_$userKey'), onRefresh: () {}),
+          DashboardScreen(key: ValueKey('dash_$userKey'), onRefresh: () {}, onNavigate: _go),
           guarded(PortfolioScreen(key: ValueKey('port_$userKey'))),
           guarded(AddTradeScreen(
             key: ValueKey('add_$userKey'),

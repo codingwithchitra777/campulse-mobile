@@ -12,7 +12,12 @@ import '../widgets/skeleton.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onRefresh;
-  const DashboardScreen({super.key, required this.onRefresh});
+
+  /// Switches the bottom-nav tab (0 Dashboard · 1 Portfolio · 2 Record ·
+  /// 3 History · 4 Account) — used by the quick-action row under the hero.
+  final ValueChanged<int>? onNavigate;
+
+  const DashboardScreen({super.key, required this.onRefresh, this.onNavigate});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -176,6 +181,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _greeting(context),
         const SizedBox(height: AppSpacing.lg),
         _buildHero(context, l10n, primaryCcy, primary),
+        const SizedBox(height: AppSpacing.lg),
+        _buildQuickActions(context),
         const SizedBox(height: AppSpacing.lg),
         _buildQuickStats(context, primaryCcy, primary),
         const SizedBox(height: AppSpacing.xl),
@@ -392,6 +399,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }),
         ],
       ),
+    );
+  }
+
+  /// ByteTown-style circular quick actions under the balance hero. Each is a
+  /// soft-tinted round button + label that jumps to the matching tab.
+  Widget _buildQuickActions(BuildContext context) {
+    Widget action(IconData icon, String label, int tab, {Color? tint}) {
+      final c = context.colors;
+      final color = tint ?? c.primary;
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.onNavigate?.call(tab),
+          child: Column(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.18)),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: c.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final c = context.colors;
+    return Row(
+      children: [
+        action(Icons.add_rounded, 'Record', 2),
+        action(Icons.pie_chart_rounded, 'Portfolio', 1, tint: c.primaryDark),
+        action(Icons.receipt_long_rounded, 'History', 3, tint: c.profit),
+        action(Icons.account_circle_rounded, 'Account', 4, tint: c.warning),
+      ],
     );
   }
 
