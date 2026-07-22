@@ -554,12 +554,66 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
     if (picked != null) setState(() => _orderDate = picked);
   }
 
+  /// Market-tinted gradient coin with the ticker's initials — the same token
+  /// look used across portfolio/history, so the trade preview feels unified.
+  Widget _tickerCoin(BuildContext context, {double size = 40}) {
+    final color = switch (_market) {
+      Market.us => const Color(0xFF8B5CF6),
+      Market.gold => const Color(0xFFF59E0B),
+      Market.csx => context.colors.primary,
+    };
+    final ticker = _tickerController.text.trim();
+    final initials = ticker.isEmpty
+        ? '?'
+        : ticker.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').padRight(2).substring(0, 2).toUpperCase();
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [color.withValues(alpha: 0.9), color.withValues(alpha: 0.55)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Text(initials,
+          style: TextStyle(color: Colors.white, fontSize: size * 0.33, fontWeight: FontWeight.w800)),
+    );
+  }
+
   Widget _summaryCard(BuildContext context) {
     final c = context.colors;
+    final isBuy = _side == 'BUY';
+    final ticker = _tickerController.text.trim().toUpperCase();
     return AppCard(
       color: c.surfaceAlt,
       child: Column(
         children: [
+          Row(
+            children: [
+              _tickerCoin(context),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(ticker.isEmpty ? 'New trade' : ticker,
+                        style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text('$_side · ${_market.label}',
+                        style: TextStyle(
+                            color: isBuy ? c.profit : c.loss, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: AppSpacing.lg),
           _summaryRow(context, 'Subtotal', Money.format(_total, _currency)),
           const SizedBox(height: 6),
           _summaryRow(context, 'Commission', Money.format(_commissionVal, _currency)),
@@ -623,6 +677,10 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
             const SizedBox(height: AppSpacing.lg),
             Row(
               children: [
+                _tickerCoin(context, size: 44),
+                const SizedBox(width: AppSpacing.md),
+                Text(ticker, style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
+                const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -632,8 +690,6 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
                   child: Text('$_side · ${_market.label}',
                       style: TextStyle(color: isBuy ? c.profit : c.loss, fontWeight: FontWeight.w800)),
                 ),
-                const Spacer(),
-                Text(ticker, style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
