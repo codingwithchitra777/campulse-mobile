@@ -9,6 +9,7 @@ import '../widgets/app_card.dart';
 import '../widgets/pnl_chip.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton.dart';
+import 'watchlist_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onRefresh;
@@ -403,15 +404,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   /// ByteTown-style circular quick actions under the balance hero. Each is a
-  /// soft-tinted round button + label that jumps to the matching tab.
+  /// soft-tinted round button + label; most jump to a bottom-nav tab, but some
+  /// (e.g. Watchlist) push their own screen via [onTap].
   Widget _buildQuickActions(BuildContext context) {
-    Widget action(IconData icon, String label, int tab, {Color? tint}) {
+    Widget action(IconData icon, String label, {int? tab, VoidCallback? onTap, Color? tint}) {
       final c = context.colors;
       final color = tint ?? c.primary;
       return Expanded(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => widget.onNavigate?.call(tab),
+          onTap: onTap ?? (tab != null ? () => widget.onNavigate?.call(tab) : null),
           child: Column(
             children: [
               Container(
@@ -442,10 +444,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final c = context.colors;
     return Row(
       children: [
-        action(Icons.add_rounded, 'Record', 2),
-        action(Icons.pie_chart_rounded, 'Portfolio', 1, tint: c.primaryDark),
-        action(Icons.receipt_long_rounded, 'History', 3, tint: c.profit),
-        action(Icons.account_circle_rounded, 'Account', 4, tint: c.warning),
+        action(Icons.add_rounded, 'Record', tab: 2),
+        action(Icons.pie_chart_rounded, 'Portfolio', tab: 1, tint: c.primaryDark),
+        action(Icons.receipt_long_rounded, 'History', tab: 3, tint: c.profit),
+        action(Icons.star_rounded, 'Watchlist', tint: c.warning, onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const WatchlistScreen()));
+        }),
       ],
     );
   }
