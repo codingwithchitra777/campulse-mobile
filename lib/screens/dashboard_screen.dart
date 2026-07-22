@@ -35,6 +35,15 @@ enum _ChartRange {
   const _ChartRange(this.label, this.days);
   final String label;
   final int? days;
+
+  /// Human label for the period P/L readout.
+  String get plLabel => switch (this) {
+        _ChartRange.w1 => 'Past week',
+        _ChartRange.m1 => 'Past month',
+        _ChartRange.m3 => 'Past 3 months',
+        _ChartRange.m6 => 'Past 6 months',
+        _ChartRange.all => 'All time',
+      };
 }
 
 /// Running totals for one currency — never blended across currencies.
@@ -600,12 +609,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     final series = _equitySeries();
     final hasRange = series.value.isNotEmpty;
-    final valueColor = hasRange && series.value.last.y >= series.value.first.y ? c.profit : c.loss;
+
+    // Period P/L = change in market value across the selected range.
+    final currentValue = hasRange ? series.value.last.y : 0.0;
+    final startValue = hasRange ? series.value.first.y : 0.0;
+    final change = currentValue - startValue;
+    final pct = startValue != 0 ? (change / startValue) * 100 : 0.0;
+    final plColor = change >= 0 ? c.profit : c.loss;
+    final valueColor = hasRange && change >= 0 ? c.profit : c.loss;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Legend + current value
+        // Header: current value (left) + period P/L value & percentage (right).
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_chartRange.plLabel,
+                    style: TextStyle(color: c.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(hasRange ? Money.format(currentValue, ccy) : '—',
+                    style: TextStyle(color: c.textPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            const Spacer(),
+            if (hasRange)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(change >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                          size: 15, color: plColor),
+                      const SizedBox(width: 2),
+                      Text(Money.format(change, ccy, signed: true),
+                          style: TextStyle(color: plColor, fontSize: 15, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text('${change >= 0 ? '+' : '−'}${pct.abs().toStringAsFixed(2)}%',
+                      style: TextStyle(color: plColor, fontSize: 12, fontWeight: FontWeight.w700)),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // Legend
         Row(
           children: [
             _legendDot(valueColor),
@@ -615,16 +668,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _legendDot(c.textMuted),
             const SizedBox(width: 5),
             Text('Invested', style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-            const Spacer(),
-            Text(hasRange ? Money.compact(series.value.last.y, ccy) : '—',
-                style: TextStyle(color: c.textPrimary, fontSize: 14, fontWeight: FontWeight.w800)),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
         _rangeSelector(c),
         const SizedBox(height: AppSpacing.md),
         SizedBox(
-          height: 180,
+          height: 170,
           child: hasRange
               ? _equityLineChart(context, series, valueColor, ccy)
               : _emptyChart(context, 'No data in this range'),
@@ -698,17 +748,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         titlesData: FlTitlesData(
           show: true,
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: AxisTitles(
+          rightTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 46,
+              reservedSize: 48,
               interval: interval,
               getTitlesWidget: (value, meta) => Padding(
-                padding: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.only(left: 6),
                 child: Text(Money.compact(value, ccy),
-                    style: TextStyle(color: c.textMuted, fontSize: 9), textAlign: TextAlign.right),
+                    style: TextStyle(color: c.textMuted, fontSize: 9), textAlign: TextAlign.left),
               ),
             ),
           ),
