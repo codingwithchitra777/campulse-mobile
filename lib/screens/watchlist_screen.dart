@@ -139,7 +139,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
 
   Widget _list(AppColors c) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110),
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
       children: [
         if (widget.embedded) _addButton(c),
         SectionHeader(title: '${_items.length} ${_items.length == 1 ? 'symbol' : 'symbols'}'),

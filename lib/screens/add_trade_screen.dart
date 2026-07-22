@@ -217,7 +217,7 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
     final isBuy = _side == 'BUY';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 120),
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
       children: [
         const SectionHeader(title: 'Record a trade'),
         _marketPicker(context),

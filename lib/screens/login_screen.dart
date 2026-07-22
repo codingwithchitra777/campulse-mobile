@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return SafeArea(
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, 120),
+        padding: EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, context.navBarClearance),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

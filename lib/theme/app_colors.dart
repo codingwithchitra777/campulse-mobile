@@ -182,4 +182,9 @@ class AppSpacing {
 /// Sugar: `context.colors.profit` from anywhere with a BuildContext.
 extension AppColorsX on BuildContext {
   AppColors get colors => Theme.of(this).extension<AppColors>()!;
+
+  /// Bottom padding a scrollable tab body needs so its last item clears the
+  /// floating bottom nav *and* the device's system-navigation inset (larger on
+  /// 3-button-nav phones than on gesture-nav ones).
+  double get navBarClearance => 100 + MediaQuery.of(this).padding.bottom;
 }

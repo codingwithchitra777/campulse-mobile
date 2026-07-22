@@ -135,8 +135,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onRefresh: _loadAllData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110,
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance,
         ),
         child: AuthService.instance.isGuest
             ? _GuestHero(l10n: l10n)

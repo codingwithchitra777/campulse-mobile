@@ -69,7 +69,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       onRefresh: _loadTrades,
       child: _loading
           ? ListView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110),
+              padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
               children: const [
                 Skeleton(width: 180, height: 40),
                 SizedBox(height: AppSpacing.lg),
@@ -89,7 +89,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildList(BuildContext context, AppLocalizations l10n) {
     final visible = _visible;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110),
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
       children: [
         _searchField(context),
         const SizedBox(height: AppSpacing.md),

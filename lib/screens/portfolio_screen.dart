@@ -89,8 +89,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       onRefresh: _loadPortfolio,
       child: _loading
           ? ListView(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110),
+              padding: EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
               children: const [
                 Skeleton.card(height: 130),
                 SizedBox(height: AppSpacing.lg),
@@ -113,7 +113,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final visible = _visible;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110),
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
       children: [
         ...summaries,
         const SizedBox(height: AppSpacing.lg),
