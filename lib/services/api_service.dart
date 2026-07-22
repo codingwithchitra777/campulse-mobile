@@ -244,6 +244,92 @@ class ApiService {
     throw Exception('Failed to load exchange rate history');
   }
 
+  // ── Loans (personal debt ledger, kept separate from trading) ──────────
+
+  /// The user's loans. Returns `{items, deliverable}` — deliverable is false
+  /// when no Telegram is linked (no repayment receipts possible).
+  Future<Map<String, dynamic>> getLoans({String? direction, String? status}) async {
+    final params = <String, String>{};
+    if (direction != null) params['direction'] = direction;
+    if (status != null) params['status'] = status;
+    final uri = Uri.parse('$baseUrl/api/loans').replace(queryParameters: params.isEmpty ? null : params);
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode == 200) return jsonDecode(response.body) as Map<String, dynamic>;
+    throw Exception('Failed to load loans');
+  }
+
+  /// Per (direction, currency) outstanding totals — never blended.
+  Future<List<dynamic>> getLoansSummary() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/loans/summary'), headers: _headers);
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return (decoded['items'] as List?) ?? const [];
+    }
+    throw Exception('Failed to load loan summary');
+  }
+
+  Future<Map<String, dynamic>> createLoan({
+    required String direction,
+    required String counterparty,
+    required num principal,
+    required String currency,
+    DateTime? loanDate,
+    DateTime? dueDate,
+    String? note,
+  }) async {
+    final body = <String, dynamic>{
+      'direction': direction,
+      'counterparty': counterparty,
+      'principal': principal,
+      'currency': currency,
+      if (loanDate != null) 'loanDate': _dateOnly(loanDate),
+      if (dueDate != null) 'dueDate': _dateOnly(dueDate),
+      if (note != null && note.isNotEmpty) 'note': note,
+    };
+    final response = await http.post(Uri.parse('$baseUrl/api/loans'),
+        headers: _headers, body: jsonEncode(body));
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(decoded['detail'] ?? 'Failed to create loan');
+    }
+    return decoded as Map<String, dynamic>;
+  }
+
+  Future<void> deleteLoan(String loanId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/api/loans/$loanId'), headers: _headers);
+    if (response.statusCode >= 400) throw Exception('Failed to delete loan');
+  }
+
+  Future<List<dynamic>> getRepayments(String loanId) async {
+    final response =
+        await http.get(Uri.parse('$baseUrl/api/loans/$loanId/repayments'), headers: _headers);
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return (decoded['items'] as List?) ?? const [];
+    }
+    throw Exception('Failed to load repayments');
+  }
+
+  Future<Map<String, dynamic>> addRepayment(String loanId,
+      {required num amount, DateTime? paidDate, String? note}) async {
+    final body = <String, dynamic>{
+      'amount': amount,
+      if (paidDate != null) 'paidDate': _dateOnly(paidDate),
+      if (note != null && note.isNotEmpty) 'note': note,
+    };
+    final response = await http.post(Uri.parse('$baseUrl/api/loans/$loanId/repayments'),
+        headers: _headers, body: jsonEncode(body));
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(decoded['detail'] ?? 'Failed to record repayment');
+    }
+    return decoded as Map<String, dynamic>;
+  }
+
+  /// The loan API expects plain `YYYY-MM-DD` dates (not ISO timestamps).
+  String _dateOnly(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   Future<Map<String, dynamic>> getMarketPriceHistory(String symbol, {int days = 30}) async {
     final uri = Uri.parse('$baseUrl/api/market/price-history/$symbol').replace(queryParameters: {
       'days': days.toString(),

@@ -8,6 +8,7 @@ import '../widgets/app_card.dart';
 import '../widgets/hub_tile.dart';
 import '../widgets/section_header.dart';
 import 'analytics_screen.dart';
+import 'loans_screen.dart';
 import 'placeholder_screen.dart';
 
 /// The Account hub — the home for every secondary feature. A profile header,
@@ -247,8 +248,10 @@ class AccountScreen extends StatelessWidget {
                 iconColor: c.profit,
                 title: 'Loans',
                 subtitle: 'Personal money lent & borrowed',
-                soon: true,
-                onTap: () => _openPlaceholder(context, 'Loans', Icons.handshake_rounded),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoansScreen()),
+                ),
               ),
             ],
           ),
