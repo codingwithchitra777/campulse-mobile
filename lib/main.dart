@@ -6,6 +6,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/portfolio_screen.dart';
 import 'screens/add_trade_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/watchlist_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'theme/app_colors.dart';
@@ -111,6 +112,7 @@ class _MainLayoutState extends State<MainLayout> {
             key: ValueKey('add_$userKey'),
             onTradeAdded: () => _go(0),
           )),
+          guarded(WatchlistScreen(key: ValueKey('watch_$userKey'), embedded: true)),
           guarded(HistoryScreen(key: ValueKey('hist_$userKey'))),
         ];
 
@@ -118,6 +120,7 @@ class _MainLayoutState extends State<MainLayout> {
           l10n.titleDashboard,
           l10n.titlePortfolio,
           l10n.titleAddTrade,
+          'Watchlist',
           'History',
         ];
 
@@ -212,11 +215,18 @@ class _FloatingNav extends StatelessWidget {
                   ),
                   _RecordFab(onTap: () => onTap(2)),
                   _NavItem(
+                    icon: Icons.star_outline_rounded,
+                    activeIcon: Icons.star_rounded,
+                    label: 'Watchlist',
+                    selected: currentIndex == 3,
+                    onTap: () => onTap(3),
+                  ),
+                  _NavItem(
                     icon: Icons.receipt_long_outlined,
                     activeIcon: Icons.receipt_long_rounded,
                     label: 'History',
-                    selected: currentIndex == 3,
-                    onTap: () => onTap(3),
+                    selected: currentIndex == 4,
+                    onTap: () => onTap(4),
                   ),
                 ],
               ),

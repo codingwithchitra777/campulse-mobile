@@ -11,7 +11,11 @@ import '../widgets/skeleton.dart';
 /// The user's tracked symbols with live quotes (routed per market). Add via a
 /// market-aware sheet (CSX quick-pick, US typeahead, fixed gold); remove inline.
 class WatchlistScreen extends StatefulWidget {
-  const WatchlistScreen({super.key});
+  /// When true, renders as a bottom-nav tab body (no Scaffold/AppBar/FAB — the
+  /// host MainLayout supplies those). The pushed/full-screen variant keeps its
+  /// own chrome.
+  final bool embedded;
+  const WatchlistScreen({super.key, this.embedded = false});
 
   @override
   State<WatchlistScreen> createState() => _WatchlistScreenState();
@@ -64,6 +68,15 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final body = RefreshIndicator(
+      onRefresh: _load,
+      child: _loading
+          ? _skeleton()
+          : _items.isEmpty
+              ? _empty(c)
+              : _list(c),
+    );
+    if (widget.embedded) return body;
     return Scaffold(
       appBar: AppBar(title: const Text('Watchlist')),
       floatingActionButton: FloatingActionButton.extended(
@@ -72,16 +85,26 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text('Add symbol', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _loading
-            ? _skeleton()
-            : _items.isEmpty
-                ? _empty(c)
-                : _list(c),
-      ),
+      body: body,
     );
   }
+
+  /// A full-width "Add symbol" button — used in embedded (tab) mode where there
+  /// is no floating action button.
+  Widget _addButton(AppColors c) => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        child: SizedBox(
+          height: 46,
+          width: double.infinity,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: c.primary),
+            onPressed: _openAdd,
+            icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+            label: const Text('Add symbol',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ),
+      );
 
   Widget _skeleton() => ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -107,13 +130,18 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           Text('Track symbols you don\'t own yet. Tap "Add symbol" to start.',
               textAlign: TextAlign.center,
               style: TextStyle(color: c.textMuted, fontSize: 14, height: 1.4)),
+          if (widget.embedded) ...[
+            const SizedBox(height: AppSpacing.xl),
+            _addButton(c),
+          ],
         ],
       );
 
   Widget _list(AppColors c) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 96),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 110),
       children: [
+        if (widget.embedded) _addButton(c),
         SectionHeader(title: '${_items.length} ${_items.length == 1 ? 'symbol' : 'symbols'}'),
         for (final it in _items) ...[
           _row(c, it),

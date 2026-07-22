@@ -9,7 +9,6 @@ import '../widgets/app_card.dart';
 import '../widgets/pnl_chip.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton.dart';
-import 'watchlist_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onRefresh;
@@ -446,10 +445,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         action(Icons.add_rounded, 'Record', tab: 2),
         action(Icons.pie_chart_rounded, 'Portfolio', tab: 1, tint: c.primaryDark),
-        action(Icons.receipt_long_rounded, 'History', tab: 3, tint: c.profit),
-        action(Icons.star_rounded, 'Watchlist', tint: c.warning, onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const WatchlistScreen()));
-        }),
+        action(Icons.star_rounded, 'Watchlist', tab: 3, tint: c.warning),
+        action(Icons.receipt_long_rounded, 'History', tab: 4, tint: c.profit),
       ],
     );
   }
