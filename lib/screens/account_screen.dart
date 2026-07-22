@@ -7,6 +7,7 @@ import '../theme/theme_controller.dart';
 import '../widgets/app_card.dart';
 import '../widgets/hub_tile.dart';
 import '../widgets/section_header.dart';
+import 'analytics_screen.dart';
 import 'placeholder_screen.dart';
 
 /// The Account hub — the home for every secondary feature. A profile header,
@@ -198,9 +199,11 @@ class AccountScreen extends StatelessWidget {
                 icon: Icons.query_stats_rounded,
                 iconColor: c.primary,
                 title: 'Analytics',
-                subtitle: 'Win rate, hold time, per-currency stats',
-                soon: true,
-                onTap: () => _openPlaceholder(context, 'Analytics', Icons.query_stats_rounded),
+                subtitle: 'Win rate, P/L split, activity stats',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+                ),
               ),
               _divider(c),
               HubTile(
