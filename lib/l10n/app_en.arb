@@ -2,11 +2,11 @@
   "@@locale": "en",
 
   "appTitle": "CamPulse",
-  "navDashboard": "Dashboard",
+  "navDashboard": "Home",
   "navPortfolio": "Portfolio",
   "navRecord": "Record",
   "navLedger": "Ledger",
-  "titleDashboard": "Dashboard",
+  "titleDashboard": "Home",
   "titlePortfolio": "Portfolio",
   "titleAddTrade": "Add Trade",
   "titleTradeLedger": "Trade Ledger",

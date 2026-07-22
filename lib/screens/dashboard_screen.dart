@@ -24,6 +24,19 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
+/// Date-range filter for the performance chart (mirrors the web: 1W…ALL).
+enum _ChartRange {
+  w1('1W', 7),
+  m1('1M', 30),
+  m3('3M', 90),
+  m6('6M', 180),
+  all('ALL', null);
+
+  const _ChartRange(this.label, this.days);
+  final String label;
+  final int? days;
+}
+
 /// Running totals for one currency — never blended across currencies.
 class _Agg {
   double value = 0;
@@ -46,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _valuationMode = 'BID';
   final String _selectedMarket = 'ALL';
   final String _baseCurrency = 'KHR';
+  _ChartRange _chartRange = _ChartRange.all;
 
   /// Per-currency aggregates, primary currency first.
   final Map<String, _Agg> _byCurrency = {};
@@ -514,22 +528,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return (value: const [], invested: const [], dates: const []);
     }
     final investment = (_chartsData?['investment'] as List?) ?? const [];
+    final days = _chartRange.days;
+    final cutoff = days == null ? null : DateTime.now().subtract(Duration(days: days));
+
     final value = <FlSpot>[];
     final invested = <FlSpot>[];
     final dates = <String>[];
     int inv = 0;
     double lastInvested = 0;
+    int x = 0;
     for (int i = 0; i < equity.length; i++) {
       final date = (equity[i]['date'] ?? '').toString();
-      final val = (equity[i]['value'] as num?)?.toDouble() ?? 0;
+      // Always advance the invested pointer so the forward-fill stays correct
+      // even for points filtered out of the selected range.
       while (inv < investment.length &&
           (investment[inv]['date'] ?? '').toString().compareTo(date) <= 0) {
         lastInvested = (investment[inv]['invested'] as num?)?.toDouble() ?? lastInvested;
         inv++;
       }
-      value.add(FlSpot(i.toDouble(), val));
-      invested.add(FlSpot(i.toDouble(), lastInvested));
+      if (cutoff != null) {
+        final d = DateTime.tryParse(date);
+        if (d != null && d.isBefore(cutoff)) continue;
+      }
+      final val = (equity[i]['value'] as num?)?.toDouble() ?? 0;
+      value.add(FlSpot(x.toDouble(), val));
+      invested.add(FlSpot(x.toDouble(), lastInvested));
       dates.add(date);
+      x++;
     }
     return (value: value, invested: invested, dates: dates);
   }
@@ -568,11 +593,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildEquityChart(BuildContext context, String ccy) {
     final c = context.colors;
-    final series = _equitySeries();
-    if (series.value.isEmpty) {
+    final equityRaw = _chartsData?['equity'];
+    final hasAny = equityRaw is List && equityRaw.isNotEmpty;
+    if (!hasAny) {
       return SizedBox(height: 200, child: _emptyChart(context, 'Record a trade to see your equity curve'));
     }
-    final valueColor = series.value.last.y >= series.value.first.y ? c.profit : c.loss;
+    final series = _equitySeries();
+    final hasRange = series.value.isNotEmpty;
+    final valueColor = hasRange && series.value.last.y >= series.value.first.y ? c.profit : c.loss;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,12 +616,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 5),
             Text('Invested', style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
             const Spacer(),
-            Text(Money.compact(series.value.last.y, ccy),
+            Text(hasRange ? Money.compact(series.value.last.y, ccy) : '—',
                 style: TextStyle(color: c.textPrimary, fontSize: 14, fontWeight: FontWeight.w800)),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        SizedBox(height: 190, child: _equityLineChart(context, series, valueColor, ccy)),
+        _rangeSelector(c),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 180,
+          child: hasRange
+              ? _equityLineChart(context, series, valueColor, ccy)
+              : _emptyChart(context, 'No data in this range'),
+        ),
+      ],
+    );
+  }
+
+  Widget _rangeSelector(AppColors c) {
+    return Row(
+      children: [
+        for (final r in _ChartRange.values) ...[
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _chartRange = r),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _chartRange == r ? c.primary : c.surfaceAlt,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  border: Border.all(color: _chartRange == r ? c.primary : c.border),
+                ),
+                child: Text(r.label,
+                    style: TextStyle(
+                      color: _chartRange == r ? c.onPrimary : c.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    )),
+              ),
+            ),
+          ),
+          if (r != _ChartRange.values.last) const SizedBox(width: 6),
+        ],
       ],
     );
   }

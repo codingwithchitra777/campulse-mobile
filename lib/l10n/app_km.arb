@@ -2,11 +2,11 @@
   "@@locale": "km",
 
   "appTitle": "CamPulse",
-  "navDashboard": "ផ្ទាំងគ្រប់គ្រង",
+  "navDashboard": "ទំព័រដើម",
   "navPortfolio": "ផលប័ត្រ",
   "navRecord": "កត់ត្រា",
   "navLedger": "បញ្ជី",
-  "titleDashboard": "ផ្ទាំងគ្រប់គ្រង",
+  "titleDashboard": "ទំព័រដើម",
   "titlePortfolio": "ផលប័ត្រ",
   "titleAddTrade": "កត់ត្រាការជួញដូរ",
   "titleTradeLedger": "បញ្ជីការជួញដូរ",

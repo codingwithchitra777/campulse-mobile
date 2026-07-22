@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'CamPulse';
 
   @override
-  String get navDashboard => 'Dashboard';
+  String get navDashboard => 'Home';
 
   @override
   String get navPortfolio => 'Portfolio';
@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navLedger => 'Ledger';
 
   @override
-  String get titleDashboard => 'Dashboard';
+  String get titleDashboard => 'Home';
 
   @override
   String get titlePortfolio => 'Portfolio';

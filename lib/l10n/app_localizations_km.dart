@@ -12,7 +12,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get appTitle => 'CamPulse';
 
   @override
-  String get navDashboard => 'ផ្ទាំងគ្រប់គ្រង';
+  String get navDashboard => 'ទំព័រដើម';
 
   @override
   String get navPortfolio => 'ផលប័ត្រ';
@@ -24,7 +24,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get navLedger => 'បញ្ជី';
 
   @override
-  String get titleDashboard => 'ផ្ទាំងគ្រប់គ្រង';
+  String get titleDashboard => 'ទំព័រដើម';
 
   @override
   String get titlePortfolio => 'ផលប័ត្រ';

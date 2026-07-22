@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @navDashboard.
   ///
   /// In en, this message translates to:
-  /// **'Dashboard'**
+  /// **'Home'**
   String get navDashboard;
 
   /// No description provided for @navPortfolio.
@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @titleDashboard.
   ///
   /// In en, this message translates to:
-  /// **'Dashboard'**
+  /// **'Home'**
   String get titleDashboard;
 
   /// No description provided for @titlePortfolio.
