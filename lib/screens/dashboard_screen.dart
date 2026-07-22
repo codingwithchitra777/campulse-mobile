@@ -7,9 +7,10 @@ import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/money.dart';
 import '../widgets/app_card.dart';
-import '../widgets/pnl_chip.dart';
+import '../widgets/performance_chart.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton.dart';
+import 'market_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onRefresh;
@@ -59,7 +60,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final ApiService _api = ApiService.instance;
   bool _loading = false;
 
-  List<dynamic> _topTickers = [];
+  /// Top watchlist symbols, each with `spots` (sparkline values) added.
+  List<Map<String, dynamic>> _watchTop = [];
   Map<String, dynamic>? _chartsData;
   Map<String, dynamic>? _exchangeHistory;
   Map<String, dynamic>? _goldHistory;
@@ -87,14 +89,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final exchangeHistory = await _api.getExchangeRateHistory('USD', 'KHR');
       final goldHistory = await _api.getMarketPriceHistory('XAU-KH');
 
-      List<dynamic> topTickers = [];
+      List<Map<String, dynamic>> watchTop = [];
       Map<String, dynamic>? chartsData;
       final byCcy = <String, _Agg>{};
       int positions = 0;
 
       if (!AuthService.instance.isGuest) {
         final portfolio = await _api.getPortfolio(valuationMode: _valuationMode);
-        topTickers = await _api.getTopTickers();
+        watchTop = await _loadWatchTop();
         chartsData = await _api.getChartsTimeline(
           _selectedMarket == 'ALL' ? null : _selectedMarket,
           _baseCurrency,
@@ -121,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _latestExchangeRate = latestExchange;
         _exchangeHistory = exchangeHistory;
         _goldHistory = goldHistory;
-        _topTickers = topTickers;
+        _watchTop = watchTop;
         _chartsData = chartsData;
         _byCurrency
           ..clear()
@@ -137,6 +139,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     }
+  }
+
+  /// The first 5 watchlist symbols, each enriched with a `spots` sparkline
+  /// (fetched in parallel from each symbol's recent price history; empty for
+  /// symbols without snapshot history, e.g. US equities).
+  Future<List<Map<String, dynamic>>> _loadWatchTop() async {
+    final List items;
+    try {
+      items = (await _api.getWatchlist()).take(5).toList();
+    } catch (_) {
+      return [];
+    }
+    final spots = await Future.wait(items.map((w) async {
+      try {
+        final h = await _api.getMarketPriceHistory((w['symbol'] ?? '').toString(), days: 30);
+        final hist = (h['items'] as List?) ?? const [];
+        return [
+          for (final e in hist)
+            if (e['price'] != null) (e['price'] as num).toDouble(),
+        ];
+      } catch (_) {
+        return <double>[];
+      }
+    }));
+    return [
+      for (int i = 0; i < items.length; i++)
+        {...(items[i] as Map).cast<String, dynamic>(), 'spots': spots[i]},
+    ];
   }
 
   /// KHR first, then by descending value — so the hero shows the main currency.
@@ -213,8 +243,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         SectionHeader(title: l10n.portfolioPerformance),
         AppCard(child: _buildEquityChart(context, primaryCcy)),
         const SizedBox(height: AppSpacing.xl),
-        SectionHeader(title: l10n.marketMovers),
-        _buildMovers(context, l10n),
+        const SectionHeader(title: 'Watchlist'),
+        _buildWatchTop(context),
         const SizedBox(height: AppSpacing.xl),
         Row(
           children: [
@@ -223,6 +253,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 context, l10n.exchangeRateTrend,
                 _exchangeSpots(), context.colors.primary,
                 valueLabel: _exchangeLatest(),
+                changePct: _spotsPct(_exchangeSpots()),
+                onTap: _openExchangeDetail,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -231,12 +263,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 context, l10n.goldPriceTrend,
                 _goldSpots(), context.colors.warning,
                 valueLabel: _goldLatest(),
+                changePct: _spotsPct(_goldSpots()),
+                onTap: _openGoldDetail,
               ),
             ),
           ],
         ),
       ],
     );
+  }
+
+  double? _spotsPct(List<FlSpot> spots) {
+    if (spots.length < 2 || spots.first.y == 0) return null;
+    return (spots.last.y - spots.first.y) / spots.first.y * 100;
+  }
+
+  void _openGoldDetail() {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => MarketDetailScreen(
+        title: 'Gold · XAU-KH',
+        subtitle: 'USD per chi',
+        seriesLabel: 'Price',
+        formatFull: (v) => Money.format(v, 'USD'),
+        formatCompact: (v) => Money.compact(v, 'USD'),
+        loader: () async {
+          final h = await _api.getMarketPriceHistory('XAU-KH', days: 180);
+          final hist = (h['items'] as List?) ?? const [];
+          final out = <MapEntry<DateTime, double>>[];
+          for (final e in hist) {
+            final d = DateTime.tryParse((e['date'] ?? '').toString());
+            if (d != null && e['price'] != null) out.add(MapEntry(d, (e['price'] as num).toDouble()));
+          }
+          out.sort((a, b) => a.key.compareTo(b.key));
+          return out;
+        },
+      ),
+    ));
+  }
+
+  void _openExchangeDetail() {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => MarketDetailScreen(
+        title: 'USD / KHR',
+        subtitle: 'Exchange rate (bid)',
+        seriesLabel: 'Rate',
+        formatFull: (v) => NumberFormat('#,##0.00').format(v),
+        formatCompact: (v) => NumberFormat('#,##0').format(v),
+        loader: () async {
+          final h = await _api.getExchangeRateHistory('USD', 'KHR', limit: 180);
+          final hist = (h['items'] as List?) ?? const [];
+          final out = <MapEntry<DateTime, double>>[];
+          for (final e in hist) {
+            final d = DateTime.tryParse((e['effectiveDate'] ?? '').toString());
+            if (d != null && e['bidRate'] != null) out.add(MapEntry(d, (e['bidRate'] as num).toDouble()));
+          }
+          out.sort((a, b) => a.key.compareTo(b.key));
+          return out;
+        },
+      ),
+    ));
+  }
+
+  void _openSymbolDetail(Map<String, dynamic> w) {
+    final symbol = (w['symbol'] ?? '').toString();
+    final market = (w['market'] ?? 'CSX').toString();
+    final ccy = (w['currency'] as String?) ?? 'KHR';
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => MarketDetailScreen(
+        title: symbol,
+        subtitle: '${market == 'GOLD_KH' ? 'Gold' : market} · $ccy',
+        seriesLabel: 'Price',
+        formatFull: (v) => Money.format(v, ccy),
+        formatCompact: (v) => Money.compact(v, ccy),
+        loader: () async {
+          final h = await _api.getMarketPriceHistory(symbol, days: 180);
+          final hist = (h['items'] as List?) ?? const [];
+          final out = <MapEntry<DateTime, double>>[];
+          for (final e in hist) {
+            final d = DateTime.tryParse((e['date'] ?? '').toString());
+            if (d != null && e['price'] != null) out.add(MapEntry(d, (e['price'] as num).toDouble()));
+          }
+          out.sort((a, b) => a.key.compareTo(b.key));
+          return out;
+        },
+      ),
+    ));
   }
 
   Widget _greeting(BuildContext context) {
@@ -823,19 +934,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _miniChartCard(BuildContext context, String title, List<FlSpot> spots, Color color,
-      {String? valueLabel}) {
+      {String? valueLabel, double? changePct, VoidCallback? onTap}) {
     final c = context.colors;
+    final pctColor = changePct == null ? c.textMuted : (changePct >= 0 ? c.profit : c.loss);
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
+          Row(
+            children: [
+              Expanded(
+                child: Text(title,
+                    style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 16, color: c.textMuted),
+            ],
+          ),
           const SizedBox(height: 2),
-          Text(valueLabel ?? '—',
-              style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(valueLabel ?? '—',
+                    style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w800),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              if (changePct != null)
+                Text('${changePct >= 0 ? '+' : '−'}${changePct.abs().toStringAsFixed(1)}%',
+                    style: TextStyle(color: pctColor, fontSize: 12, fontWeight: FontWeight.w700)),
+            ],
+          ),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
             height: 48,
@@ -906,61 +1037,111 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ── Top movers ──────────────────────────────────────────────────────
-  Widget _buildMovers(BuildContext context, AppLocalizations l10n) {
+  // ── Top watchlist ───────────────────────────────────────────────────
+  Widget _buildWatchTop(BuildContext context) {
     final c = context.colors;
-    if (_topTickers.isEmpty) {
+    if (_watchTop.isEmpty) {
       return AppCard(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            child: Text(l10n.noRankData, style: TextStyle(color: c.textMuted, fontSize: 13)),
-          ),
+        onTap: () => widget.onNavigate?.call(3), // Watchlist tab
+        child: Row(
+          children: [
+            Icon(Icons.star_outline_rounded, size: 20, color: c.textMuted),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text('Add symbols to your watchlist to track them here.',
+                  style: TextStyle(color: c.textSecondary, fontSize: 13)),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: c.textMuted),
+          ],
         ),
       );
     }
-    final items = _topTickers.take(5).toList();
     return AppCard(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Column(
         children: [
-          for (int i = 0; i < items.length; i++) ...[
+          for (int i = 0; i < _watchTop.length; i++) ...[
             if (i > 0)
-              Divider(height: 1, thickness: 1, color: c.border.withValues(alpha: 0.6), indent: 52),
-            _moverRow(context, items[i], i + 1),
+              Divider(height: 1, thickness: 1, color: c.border.withValues(alpha: 0.6), indent: 64),
+            _watchRow(context, _watchTop[i]),
           ],
         ],
       ),
     );
   }
 
-  Widget _moverRow(BuildContext context, dynamic item, int rank) {
+  Widget _watchRow(BuildContext context, Map<String, dynamic> w) {
     final c = context.colors;
-    final name = (item['ticker'] ?? '').toString();
-    final pnl = (item['realisedPnl'] as num?) ?? 0;
-    final ccy = (item['currency'] as String?) ?? 'KHR';
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
-      child: Row(
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: c.surfaceAlt,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+    final symbol = (w['symbol'] ?? '').toString();
+    final market = (w['market'] ?? 'CSX').toString();
+    final ccy = (w['currency'] as String?) ?? 'KHR';
+    final price = w['price'] as num?;
+    final dir = (w['changeDirection'] ?? 'equal').toString();
+    final spots = (w['spots'] as List?)?.cast<double>() ?? const [];
+    final color = dir == 'up' ? c.profit : (dir == 'down' ? c.loss : c.textMuted);
+    final marketColor = switch (market) {
+      'US' => const Color(0xFF8B5CF6),
+      'GOLD_KH' => const Color(0xFFF59E0B),
+      _ => c.primary,
+    };
+    final initials = symbol.isEmpty
+        ? '?'
+        : symbol.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').padRight(2).substring(0, 2).toUpperCase();
+
+    return InkWell(
+      onTap: () => _openSymbolDetail(w),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [marketColor.withValues(alpha: 0.9), marketColor.withValues(alpha: 0.55)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Text(initials,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
             ),
-            child: Text('$rank',
-                style: TextStyle(color: c.textMuted, fontSize: 12, fontWeight: FontWeight.w700)),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(name,
-                style: TextStyle(color: c.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
-          ),
-          PnlChip(value: pnl, currency: ccy),
-        ],
+            const SizedBox(width: AppSpacing.md),
+            SizedBox(
+              width: 58,
+              child: Text(symbol,
+                  style: TextStyle(color: c.textPrimary, fontSize: 15, fontWeight: FontWeight.w800),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            // Sparkline in the middle
+            Expanded(
+              child: spots.length < 2
+                  ? const SizedBox()
+                  : Sparkline(values: spots, color: color, height: 34),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(price == null ? '—' : Money.format(price, ccy),
+                    style: TextStyle(color: c.textPrimary, fontSize: 14, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Icon(
+                  dir == 'up'
+                      ? Icons.arrow_drop_up_rounded
+                      : (dir == 'down' ? Icons.arrow_drop_down_rounded : Icons.remove_rounded),
+                  color: color,
+                  size: 18,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
