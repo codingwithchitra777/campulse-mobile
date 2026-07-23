@@ -94,7 +94,7 @@
   "@warningPrefix": {
     "placeholders": { "message": { "type": "String" } }
   },
-  "lifoMatchedLots": "📦 ឡូតបានផ្គូផ្គង (LIFO)៖",
+  "lifoMatchedLots": "📦 ឡូតបានផ្គូផ្គង៖",
   "matchedLotLine": "បានផ្គូផ្គង {qty} ភាគហ៊ុនពីឡូតទិញក្នុងតម្លៃ {price} រៀល។",
   "@matchedLotLine": {
     "placeholders": {
@@ -126,7 +126,7 @@
   "estimatedTotalLabel": "សរុបប៉ាន់ស្មាន",
   "simulatedPnlLabel": "ចំណេញ/ខាតប៉ាន់ស្មាន (បន្ទាប់ពីកម្រៃ)",
   "sellLossWarningTitle": "⚠️ ការព្រមាន៖ លក់ខាត!",
-  "sellLossWarningBody": "ការអនុវត្តប្រតិបត្តិការនេះនឹងបណ្តាលឱ្យខាតជាក់ស្តែង {amount} រៀល ដោយផ្អែកលើការផ្គូផ្គង LIFO។",
+  "sellLossWarningBody": "ការអនុវត្តប្រតិបត្តិការនេះនឹងបណ្តាលឱ្យខាតជាក់ស្តែង {amount} រៀល ដោយផ្អែកលើការផ្គូផ្គងតម្លៃថោកជាងមុន។",
   "@sellLossWarningBody": {
     "placeholders": { "amount": { "type": "String" } }
   },
@@ -151,7 +151,7 @@
   "totalSold": "លក់សរុប",
   "remaining": "នៅសល់",
   "realisedPnlLabel": "ចំណេញ/ខាតដែលបានដឹង",
-  "buyOrdersTitle": "📈 ការបញ្ជាទិញ (លំដាប់ LIFO)",
+  "buyOrdersTitle": "📈 ការបញ្ជាទិញ",
   "sellOrdersTitle": "ការបញ្ជាលក់",
   "noBuyOrders": "គ្មានការបញ្ជាទិញទេ។",
   "noSellOrders": "គ្មានការបញ្ជាលក់ទេ។",
@@ -178,7 +178,7 @@
       "price": { "type": "String" }
     }
   },
-  "buyLotsAllocation": "📥 ឡូតទិញ (ការបែងចែក LIFO)",
+  "buyLotsAllocation": "📥 ឡូតទិញ (ការបែងចែកតម្លៃថោកមុន)",
   "seqLabel": "លេខរៀង #{seq}",
   "@seqLabel": {
     "placeholders": { "seq": { "type": "String" } }
@@ -201,7 +201,7 @@
 
   "authRequiredTitle": "ត្រូវការចូលគណនី",
   "authRequiredDesc": "ដើម្បីមើលប៉ូស៊ីស្យុងសកម្មរបស់អ្នក កត់ត្រាប្រតិបត្តិការថ្មី ឬចូលមើលប្រវត្តិកំណត់ហេតុជួញដូររបស់អ្នក សូមចូលគណនីដោយប្រើ Google។",
-  "authFeatureLifo": "ការផ្គូផ្គងតម្លៃដើមតាមបែប LIFO៖ ការបែងចែកភាគហ៊ុនតាមឡូតពន្ធដោយស្វ័យប្រវត្តិ។",
+  "authFeatureLifo": "ការផ្គូផ្គងតម្លៃថោកជាងមុន៖ ការលក់ប្រើឡូតទិញដែលថោកបំផុតជាមុនសិន។",
   "authFeaturePosition": "ការបំបែកប៉ូស៊ីស្យុង៖ តម្លៃដើមមធ្យមនៅសល់ក្នុងមួយហ៊ុន។",
   "authFeatureSync": "ការធ្វើសមកាលកម្មតាមពេលវេលាជាក់ស្តែង៖ ប្រើ Backend រួមគ្នាជាមួយ Telegram Bot។",
   "signInWithGoogle": "ចូលគណនីជាមួយ Google",

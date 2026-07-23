@@ -205,7 +205,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get lifoMatchedLots => '📦 LIFO Matched Lots:';
+  String get lifoMatchedLots => '📦 Matched Lots:';
 
   @override
   String matchedLotLine(String qty, String price) {
@@ -262,7 +262,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sellLossWarningBody(String amount) {
-    return 'Executing this transaction will result in a realized loss of $amount riel on a LIFO matching basis.';
+    return 'Executing this transaction will result in a realized loss of $amount riel on a best-price (cheapest-lot-first) matching basis.';
   }
 
   @override
@@ -309,7 +309,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get realisedPnlLabel => 'Realised P/L';
 
   @override
-  String get buyOrdersTitle => '📈 Buy Orders (LIFO Queue)';
+  String get buyOrdersTitle => '📈 Buy Orders';
 
   @override
   String get sellOrdersTitle => 'Sell Orders';
@@ -341,7 +341,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get buyLotsAllocation => '📥 Buy Lots (LIFO Allocation)';
+  String get buyLotsAllocation => '📥 Buy Lots (Best-price Allocation)';
 
   @override
   String seqLabel(String seq) {
@@ -379,7 +379,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authFeatureLifo =>
-      'LIFO Cost Basis Matching: Automatic tax-lot allocation of shares.';
+      'Best-price lot matching: sales consume your cheapest open buy lots first.';
 
   @override
   String get authFeaturePosition =>

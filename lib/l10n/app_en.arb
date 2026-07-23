@@ -94,7 +94,7 @@
   "@warningPrefix": {
     "placeholders": { "message": { "type": "String" } }
   },
-  "lifoMatchedLots": "📦 LIFO Matched Lots:",
+  "lifoMatchedLots": "📦 Matched Lots:",
   "matchedLotLine": "Matched {qty} shares from Buy lot @ {price} riel.",
   "@matchedLotLine": {
     "placeholders": {
@@ -126,7 +126,7 @@
   "estimatedTotalLabel": "ESTIMATED TOTAL",
   "simulatedPnlLabel": "Simulated P/L (Net of Fees)",
   "sellLossWarningTitle": "⚠️ Warning: Sell at a Loss!",
-  "sellLossWarningBody": "Executing this transaction will result in a realized loss of {amount} riel on a LIFO matching basis.",
+  "sellLossWarningBody": "Executing this transaction will result in a realized loss of {amount} riel on a best-price (cheapest-lot-first) matching basis.",
   "@sellLossWarningBody": {
     "placeholders": { "amount": { "type": "String" } }
   },
@@ -151,7 +151,7 @@
   "totalSold": "Total Sold",
   "remaining": "Remaining",
   "realisedPnlLabel": "Realised P/L",
-  "buyOrdersTitle": "📈 Buy Orders (LIFO Queue)",
+  "buyOrdersTitle": "📈 Buy Orders",
   "sellOrdersTitle": "Sell Orders",
   "noBuyOrders": "No buy orders.",
   "noSellOrders": "No sell orders.",
@@ -178,7 +178,7 @@
       "price": { "type": "String" }
     }
   },
-  "buyLotsAllocation": "📥 Buy Lots (LIFO Allocation)",
+  "buyLotsAllocation": "📥 Buy Lots (Best-price Allocation)",
   "seqLabel": "Seq #{seq}",
   "@seqLabel": {
     "placeholders": { "seq": { "type": "String" } }
@@ -201,7 +201,7 @@
 
   "authRequiredTitle": "Authentication Required",
   "authRequiredDesc": "To view your active positions, record new transactions, or access your trade ledger history, please sign in using Google.",
-  "authFeatureLifo": "LIFO Cost Basis Matching: Automatic tax-lot allocation of shares.",
+  "authFeatureLifo": "Best-price lot matching: sales consume your cheapest open buy lots first.",
   "authFeaturePosition": "Position Breakdown: Average remaining cost basis per share.",
   "authFeatureSync": "Real-time Synchronization: Shared backend with Telegram Bot.",
   "signInWithGoogle": "Sign in with Google",

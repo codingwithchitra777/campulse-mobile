@@ -455,7 +455,7 @@ abstract class AppLocalizations {
   /// No description provided for @lifoMatchedLots.
   ///
   /// In en, this message translates to:
-  /// **'📦 LIFO Matched Lots:'**
+  /// **'📦 Matched Lots:'**
   String get lifoMatchedLots;
 
   /// No description provided for @matchedLotLine.
@@ -551,7 +551,7 @@ abstract class AppLocalizations {
   /// No description provided for @sellLossWarningBody.
   ///
   /// In en, this message translates to:
-  /// **'Executing this transaction will result in a realized loss of {amount} riel on a LIFO matching basis.'**
+  /// **'Executing this transaction will result in a realized loss of {amount} riel on a best-price (cheapest-lot-first) matching basis.'**
   String sellLossWarningBody(String amount);
 
   /// No description provided for @cancel.
@@ -635,7 +635,7 @@ abstract class AppLocalizations {
   /// No description provided for @buyOrdersTitle.
   ///
   /// In en, this message translates to:
-  /// **'📈 Buy Orders (LIFO Queue)'**
+  /// **'📈 Buy Orders'**
   String get buyOrdersTitle;
 
   /// No description provided for @sellOrdersTitle.
@@ -683,7 +683,7 @@ abstract class AppLocalizations {
   /// No description provided for @buyLotsAllocation.
   ///
   /// In en, this message translates to:
-  /// **'📥 Buy Lots (LIFO Allocation)'**
+  /// **'📥 Buy Lots (Best-price Allocation)'**
   String get buyLotsAllocation;
 
   /// No description provided for @seqLabel.
@@ -743,7 +743,7 @@ abstract class AppLocalizations {
   /// No description provided for @authFeatureLifo.
   ///
   /// In en, this message translates to:
-  /// **'LIFO Cost Basis Matching: Automatic tax-lot allocation of shares.'**
+  /// **'Best-price lot matching: sales consume your cheapest open buy lots first.'**
   String get authFeatureLifo;
 
   /// No description provided for @authFeaturePosition.

@@ -205,7 +205,7 @@ class AppLocalizationsKm extends AppLocalizations {
   }
 
   @override
-  String get lifoMatchedLots => '📦 ឡូតបានផ្គូផ្គង (LIFO)៖';
+  String get lifoMatchedLots => '📦 ឡូតបានផ្គូផ្គង៖';
 
   @override
   String matchedLotLine(String qty, String price) {
@@ -263,7 +263,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String sellLossWarningBody(String amount) {
-    return 'ការអនុវត្តប្រតិបត្តិការនេះនឹងបណ្តាលឱ្យខាតជាក់ស្តែង $amount រៀល ដោយផ្អែកលើការផ្គូផ្គង LIFO។';
+    return 'ការអនុវត្តប្រតិបត្តិការនេះនឹងបណ្តាលឱ្យខាតជាក់ស្តែង $amount រៀល ដោយផ្អែកលើការផ្គូផ្គងតម្លៃថោកជាងមុន។';
   }
 
   @override
@@ -310,7 +310,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get realisedPnlLabel => 'ចំណេញ/ខាតដែលបានដឹង';
 
   @override
-  String get buyOrdersTitle => '📈 ការបញ្ជាទិញ (លំដាប់ LIFO)';
+  String get buyOrdersTitle => '📈 ការបញ្ជាទិញ';
 
   @override
   String get sellOrdersTitle => 'ការបញ្ជាលក់';
@@ -342,7 +342,7 @@ class AppLocalizationsKm extends AppLocalizations {
   }
 
   @override
-  String get buyLotsAllocation => '📥 ឡូតទិញ (ការបែងចែក LIFO)';
+  String get buyLotsAllocation => '📥 ឡូតទិញ (ការបែងចែកតម្លៃថោកមុន)';
 
   @override
   String seqLabel(String seq) {
@@ -380,7 +380,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get authFeatureLifo =>
-      'ការផ្គូផ្គងតម្លៃដើមតាមបែប LIFO៖ ការបែងចែកភាគហ៊ុនតាមឡូតពន្ធដោយស្វ័យប្រវត្តិ។';
+      'ការផ្គូផ្គងតម្លៃថោកជាងមុន៖ ការលក់ប្រើឡូតទិញដែលថោកបំផុតជាមុនសិន។';
 
   @override
   String get authFeaturePosition =>
