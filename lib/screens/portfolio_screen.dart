@@ -4,7 +4,7 @@ import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/money.dart';
 import '../widgets/app_card.dart';
-import '../widgets/pnl_chip.dart';
+import '../widgets/performance_chart.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton.dart';
 import 'position_details_screen.dart';
@@ -35,6 +35,23 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     setState(() => _loading = true);
     try {
       final portfolio = await _api.getPortfolio();
+      // Attach a price sparkline per holding (parallel; empty for symbols
+      // without snapshot history, e.g. US equities).
+      final spots = await Future.wait(portfolio.map((h) async {
+        try {
+          final res = await _api.getMarketPriceHistory((h['ticker'] ?? '').toString(), days: 30);
+          final hist = (res['items'] as List?) ?? const [];
+          return [
+            for (final e in hist)
+              if (e['price'] != null) (e['price'] as num).toDouble(),
+          ];
+        } catch (_) {
+          return <double>[];
+        }
+      }));
+      for (int i = 0; i < portfolio.length; i++) {
+        (portfolio[i] as Map)['spots'] = spots[i];
+      }
       setState(() {
         _portfolio = portfolio;
         _loading = false;
@@ -338,6 +355,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final ccyTotal = valueByCcy[ccy] ?? 0;
     final alloc = ccyTotal > 0 ? value / ccyTotal : 0.0;
 
+    final invested = (avgCost?.toDouble() ?? 0) * qty.toDouble();
+    final pnlPct = invested > 0 ? (totalPnl.toDouble() / invested) * 100 : null;
+    final pnlColor = totalPnl >= 0 ? c.profit : c.loss;
+    final spots = (h['spots'] as List?)?.cast<double>() ?? const [];
+    final qtyStr = qty is int ? '$qty' : qty.toStringAsFixed(0);
+
     return AppCard(
       onTap: () {
         Navigator.push(
@@ -348,6 +371,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header: coin · ticker · market  ·  P/L% pill
           Row(
             children: [
               _tickerCoin(context, (h['ticker'] ?? '').toString(), market),
@@ -357,60 +381,72 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               const SizedBox(width: AppSpacing.sm),
               _marketBadge(context, market),
               const Spacer(),
-              PnlChip(value: totalPnl, currency: ccy),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _cell(context, 'Value', Money.format(value, ccy)),
-              _cell(context, 'Qty', '${qty is int ? qty : qty.toStringAsFixed(0)}'),
-              _cell(context, 'Last', lastPrice == null ? '—' : Money.format(lastPrice, ccy)),
-              _cell(context, 'Avg cost', avgCost == null ? '—' : Money.format(avgCost, ccy),
-                  alignEnd: true),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          // Allocation of this position within its currency
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                  child: LinearProgressIndicator(
-                    value: alloc.clamp(0.0, 1.0),
-                    minHeight: 6,
-                    backgroundColor: c.surfaceAlt,
-                    valueColor: AlwaysStoppedAnimation(c.primary),
+              if (pnlPct != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: pnlColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(totalPnl >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                          size: 13, color: pnlColor),
+                      const SizedBox(width: 2),
+                      Text('${totalPnl >= 0 ? '+' : '−'}${pnlPct.abs().toStringAsFixed(1)}%',
+                          style: TextStyle(color: pnlColor, fontSize: 12, fontWeight: FontWeight.w800)),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text('${(alloc * 100).toStringAsFixed(0)}%',
-                  style: TextStyle(color: c.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
             ],
           ),
-          if (soldPct > 0) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text('${soldPct.toStringAsFixed(0)}% sold',
-                style: TextStyle(color: c.textMuted, fontSize: 11)),
-          ],
+          const SizedBox(height: AppSpacing.md),
+          // Value + P/L amount, with sparkline on the right
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Money.format(value, ccy),
+                        style: TextStyle(color: c.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text('${totalPnl >= 0 ? '+' : ''}${Money.format(totalPnl, ccy, signed: true).replaceFirst('+', '')}',
+                        style: TextStyle(color: pnlColor, fontSize: 13, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+              if (spots.length >= 2)
+                SizedBox(
+                  width: 96,
+                  child: Sparkline(values: spots, color: pnlColor, height: 40),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // One light meta line
+          Text(
+            '$qtyStr @ ${lastPrice == null ? '—' : Money.format(lastPrice, ccy)}'
+            ' · avg ${avgCost == null ? '—' : Money.format(avgCost, ccy)}'
+            ' · ${(alloc * 100).toStringAsFixed(0)}% of $ccy'
+            '${soldPct > 0 ? ' · ${soldPct.toStringAsFixed(0)}% sold' : ''}',
+            style: TextStyle(color: c.textMuted, fontSize: 12, height: 1.3),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Thin allocation bar (subtle footer)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+            child: LinearProgressIndicator(
+              value: alloc.clamp(0.0, 1.0),
+              minHeight: 4,
+              backgroundColor: c.surfaceAlt,
+              valueColor: AlwaysStoppedAnimation(c.primary.withValues(alpha: 0.7)),
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _cell(BuildContext context, String label, String value, {bool alignEnd = false}) {
-    final c = context.colors;
-    return Column(
-      crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: c.textMuted, fontSize: 11)),
-        const SizedBox(height: 2),
-        Text(value,
-            style: TextStyle(color: c.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
-      ],
     );
   }
 
