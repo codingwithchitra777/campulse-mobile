@@ -365,7 +365,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => PositionDetailsScreen(ticker: h['ticker'])),
+          MaterialPageRoute(builder: (_) => PositionDetailsScreen(
+                ticker: h['ticker'], currency: ccy, lastPrice: lastPrice)),
         ).then((_) => _loadPortfolio());
       },
       child: Column(
