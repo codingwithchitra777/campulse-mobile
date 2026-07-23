@@ -715,10 +715,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<FlSpot> _goldSpots() {
     final items = _goldHistory?['items'];
     if (items is! List || items.isEmpty) return [];
-    final rev = items.reversed.toList();
+    // Gold price-history comes back oldest→newest already (unlike the exchange
+    // feed), so do NOT reverse — otherwise the "latest" reads the oldest point.
     return [
-      for (int i = 0; i < rev.length; i++)
-        FlSpot(i.toDouble(), (rev[i]['price'] as num?)?.toDouble() ?? 0),
+      for (int i = 0; i < items.length; i++)
+        FlSpot(i.toDouble(), (items[i]['price'] as num?)?.toDouble() ?? 0),
     ];
   }
 
