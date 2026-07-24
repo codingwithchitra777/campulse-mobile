@@ -663,7 +663,7 @@ class _AddTradeScreenState extends State<AddTradeScreen> {
       ),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg,
-            AppSpacing.lg + MediaQuery.of(ctx).viewInsets.bottom),
+            AppSpacing.lg + MediaQuery.of(ctx).viewInsets.bottom + MediaQuery.of(ctx).padding.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

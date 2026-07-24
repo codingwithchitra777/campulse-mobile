@@ -160,7 +160,6 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
   }
 
   Widget _openPnlHero(AppColors c, num? currentValue, num? unreal, double? unrealPct, num costBasis) {
-    final color = (unreal ?? 0) >= 0 ? c.profit : c.loss;
     return AppCard(
       gradient: c.primaryGradient,
       padding: const EdgeInsets.all(AppSpacing.xl),

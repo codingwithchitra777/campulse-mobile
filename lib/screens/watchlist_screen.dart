@@ -378,7 +378,7 @@ class _AddSymbolSheetState extends State<_AddSymbolSheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg,
-          AppSpacing.lg + MediaQuery.of(context).viewInsets.bottom),
+          AppSpacing.lg + MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
