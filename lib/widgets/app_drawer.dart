@@ -229,7 +229,7 @@ class AppDrawer extends StatelessWidget {
                   ),
                 const SizedBox(height: AppSpacing.lg),
                 Center(
-                  child: Text('CamPulse • v1.0', style: TextStyle(color: c.textMuted, fontSize: 12)),
+                  child: Text('CamboPulse • v1.0', style: TextStyle(color: c.textMuted, fontSize: 12)),
                 ),
               ],
             ),
@@ -270,7 +270,7 @@ class AppDrawer extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                   ),
-                  child: Text(isGuest ? 'Guest' : 'CamPulse member',
+                  child: Text(isGuest ? 'Guest' : 'CamboPulse member',
                       style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
               ],

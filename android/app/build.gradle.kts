@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.campulse.app"
+    namespace = "com.cambopulse.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.campulse.app"
+        applicationId = "com.cambopulse.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -36,7 +36,7 @@ android {
     // Name the built APK `CamPulse.apk` instead of the default `app-release.apk`.
     applicationVariants.all {
         outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "CamPulse.apk"
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "CamboPulse.apk"
         }
     }
 }

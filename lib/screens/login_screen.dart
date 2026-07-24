@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Meet CamPulse — track your CSX, US & gold trades and see your real profit, all in one place.',
+              'Meet CamboPulse — track your CSX, US & gold trades and see your real profit, all in one place.',
               style: TextStyle(color: c.textMuted, fontSize: 15, height: 1.5),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -191,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
-                      const Text('CamPulse',
+                      const Text('CamboPulse',
                           style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                       const Spacer(),
                       Container(

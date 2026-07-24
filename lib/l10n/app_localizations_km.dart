@@ -9,7 +9,7 @@ class AppLocalizationsKm extends AppLocalizations {
   AppLocalizationsKm([String locale = 'km']) : super(locale);
 
   @override
-  String get appTitle => 'CamPulse';
+  String get appTitle => 'CamboPulse';
 
   @override
   String get navDashboard => 'ទំព័រដើម';

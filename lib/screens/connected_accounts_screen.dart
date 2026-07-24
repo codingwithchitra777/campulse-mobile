@@ -149,7 +149,7 @@ class _ConnectedAccountsScreenState extends State<ConnectedAccountsScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
-              Text('Link your Telegram to get price alerts, loan receipts, and use the @CamPulse bot on the same portfolio.',
+              Text('Link your Telegram to get price alerts, loan receipts, and use the @CamboPulseBot on the same portfolio.',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, height: 1.5)),
               const SizedBox(height: AppSpacing.lg),
               SizedBox(
@@ -326,7 +326,7 @@ class _ConnectedAccountsScreenState extends State<ConnectedAccountsScreen> {
     if (uri == null) return;
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok) {
-      _toast('Could not open Telegram. Copy the code and use /start in @CamPulse.');
+      _toast('Could not open Telegram. Copy the code and use /start in @CamboPulseBot.');
     }
   }
 }

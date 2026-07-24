@@ -53,7 +53,7 @@ class _CamPulseAppState extends State<CamPulseApp> {
       ]),
       builder: (context, _) {
         return MaterialApp(
-          title: 'CamPulse',
+          title: 'CamboPulse',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
