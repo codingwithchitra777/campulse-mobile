@@ -159,6 +159,8 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
     final change = (it['change'] as num?) ?? 0;
     final dir = (it['changeDirection'] ?? 'equal').toString();
     final color = dir == 'up' ? c.profit : (dir == 'down' ? c.loss : c.textMuted);
+    final prev = (price?.toDouble() ?? 0) - change.toDouble();
+    final pct = prev != 0 ? (change / prev) * 100 : 0.0;
 
     return Dismissible(
       key: ValueKey('$market:$symbol'),
@@ -210,7 +212,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                       color: color,
                       size: 18,
                     ),
-                    Text(Money.format(change.abs(), ccy),
+                    Text('${Money.format(change.abs(), ccy)} (${pct >= 0 ? '+' : '−'}${pct.abs().toStringAsFixed(1)}%)',
                         style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
                   ],
                 ),

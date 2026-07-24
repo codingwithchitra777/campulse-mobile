@@ -1090,9 +1090,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final market = (w['market'] ?? 'CSX').toString();
     final ccy = (w['currency'] as String?) ?? 'KHR';
     final price = w['price'] as num?;
+    final change = (w['change'] as num?) ?? 0;
     final dir = (w['changeDirection'] ?? 'equal').toString();
     final spots = (w['spots'] as List?)?.cast<double>() ?? const [];
     final color = dir == 'up' ? c.profit : (dir == 'down' ? c.loss : c.textMuted);
+    final prev = (price?.toDouble() ?? 0) - change.toDouble();
+    final pct = prev != 0 ? (change / prev) * 100 : 0.0;
     final marketColor = switch (market) {
       'US' => const Color(0xFF8B5CF6),
       'GOLD_KH' => const Color(0xFFF59E0B),
@@ -1145,12 +1148,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(price == null ? '—' : Money.format(price, ccy),
                     style: TextStyle(color: c.textPrimary, fontSize: 14, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 2),
-                Icon(
-                  dir == 'up'
-                      ? Icons.arrow_drop_up_rounded
-                      : (dir == 'down' ? Icons.arrow_drop_down_rounded : Icons.remove_rounded),
-                  color: color,
-                  size: 18,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      dir == 'up'
+                          ? Icons.arrow_drop_up_rounded
+                          : (dir == 'down' ? Icons.arrow_drop_down_rounded : Icons.remove_rounded),
+                      color: color,
+                      size: 16,
+                    ),
+                    Text('${Money.format(change.abs(), ccy)} (${pct >= 0 ? '+' : '−'}${pct.abs().toStringAsFixed(1)}%)',
+                        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ],
                 ),
               ],
             ),

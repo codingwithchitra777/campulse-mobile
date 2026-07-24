@@ -85,9 +85,26 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
     final sells = (_details!['sells'] as List?) ?? const [];
     final lots = (_details!['remainingLots'] as List?) ?? const [];
 
+    // Open-position (unrealised) P/L from the remaining lots vs current price.
+    num openQty = 0, costBasis = 0;
+    for (final lot in lots) {
+      final q = (lot['qtyOpen'] as num? ?? 0);
+      final p = (lot['price'] as num? ?? 0);
+      openQty += q;
+      costBasis += p * q;
+    }
+    final last = widget.lastPrice;
+    final currentValue = last != null ? last * openQty : null;
+    final unreal = currentValue != null ? currentValue - costBasis : null;
+    final unrealPct = (unreal != null && costBasis > 0) ? (unreal / costBasis) * 100 : null;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xxl),
       children: [
+        if (openQty > 0) ...[
+          _openPnlHero(c, currentValue, unreal, unrealPct, costBasis),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         // Summary
         AppCard(
           child: Row(
@@ -139,6 +156,51 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
             const SizedBox(height: AppSpacing.md),
           ],
       ],
+    );
+  }
+
+  Widget _openPnlHero(AppColors c, num? currentValue, num? unreal, double? unrealPct, num costBasis) {
+    final color = (unreal ?? 0) >= 0 ? c.profit : c.loss;
+    return AppCard(
+      gradient: c.primaryGradient,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('OPEN POSITION',
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+          const SizedBox(height: AppSpacing.sm),
+          Text(currentValue == null ? '—' : Money.format(currentValue, _ccy),
+              style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+          const SizedBox(height: AppSpacing.sm),
+          if (unreal != null && unrealPct != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(unreal >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      size: 15, color: Colors.white),
+                  const SizedBox(width: 4),
+                  Text('${Money.format(unreal, _ccy, signed: true)}  '
+                      '(${unreal >= 0 ? '+' : '−'}${unrealPct.abs().toStringAsFixed(2)}%)',
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                ],
+              ),
+            )
+          else
+            Text('Cost ${Money.format(costBasis, _ccy)}',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
+          const SizedBox(height: 6),
+          Text('unrealised · cost ${Money.format(costBasis, _ccy)}',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+        ],
+      ),
     );
   }
 
