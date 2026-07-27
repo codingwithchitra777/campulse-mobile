@@ -6,7 +6,7 @@ class ApiService {
   static final ApiService instance = ApiService._internal();
   ApiService._internal();
 
-  String get baseUrl => 'https://campulse-backend.fastapicloud.dev';
+  String get baseUrl => 'https://api.cambopulse.com';
 
   // Active user ID: 'guest' until a Google (or demo) sign-in sets it, mirroring
   // the web app's ApiService.activeUserId default (frontend/src/app/services/api.service.ts).
