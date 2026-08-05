@@ -22,6 +22,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   final ApiService _api = ApiService.instance;
   bool _loading = false;
   List<dynamic> _portfolio = [];
+  List<dynamic> _yearlyPnl = [];
   String _query = '';
   _Sort _sort = _Sort.value;
 
@@ -52,8 +53,14 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       for (int i = 0; i < portfolio.length; i++) {
         (portfolio[i] as Map)['spots'] = spots[i];
       }
+      // Realised P/L by year (best-effort — never blocks the holdings view).
+      List<dynamic> yearly = [];
+      try {
+        yearly = await _api.getYearlyPnl();
+      } catch (_) {}
       setState(() {
         _portfolio = portfolio;
+        _yearlyPnl = yearly;
         _loading = false;
       });
     } catch (e) {
@@ -129,6 +136,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final summaries = _buildSummaries(valueByCcy);
     final visible = _visible;
 
+    // Split like the web: open positions vs fully-closed ones (remainingQty 0).
+    final current = visible.where((h) => ((h['remainingQty'] as num?) ?? 0) > 0).toList();
+    final closed = visible.where((h) => ((h['remainingQty'] as num?) ?? 0) <= 0).toList();
+
     return ListView(
       padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
       children: [
@@ -136,7 +147,6 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         const SizedBox(height: AppSpacing.lg),
         _searchAndSort(context),
         const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: '${l10n.titlePortfolio} · ${visible.length}'),
         if (visible.isEmpty)
           AppCard(
             child: Center(
@@ -147,12 +157,80 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               ),
             ),
           )
-        else
-          for (final h in visible) ...[
-            _positionCard(context, h, valueByCcy),
+        else ...[
+          SectionHeader(title: 'Current Holdings · ${current.length}'),
+          if (current.isEmpty)
+            AppCard(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Text('No open positions',
+                      style: TextStyle(color: context.colors.textMuted)),
+                ),
+              ),
+            )
+          else
+            for (final h in current) ...[
+              _positionCard(context, h, valueByCcy),
+              const SizedBox(height: AppSpacing.md),
+            ],
+          if (closed.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
+            SectionHeader(title: 'Closed Positions · ${closed.length}'),
+            for (final h in closed) ...[
+              _positionCard(context, h, valueByCcy),
+              const SizedBox(height: AppSpacing.md),
+            ],
           ],
+        ],
+        if (_yearlyPnl.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          _yearlyPnlPanel(context),
+        ],
       ],
+    );
+  }
+
+  // ── Realised P/L by year (parity with the web portfolio) ─────────────
+  Widget _yearlyPnlPanel(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: '📅 Realized P/L by year'),
+        AppCard(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Column(
+            children: [
+              for (int i = 0; i < _yearlyPnl.length; i++) ...[
+                if (i > 0) Divider(height: 1, thickness: 1, color: c.border.withValues(alpha: 0.6)),
+                _yearRow(c, _yearlyPnl[i]),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _yearRow(AppColors c, dynamic y) {
+    final year = y['year'];
+    final pnl = (y['realisedPnl'] as num?) ?? 0;
+    final sells = (y['sellCount'] as num?)?.toInt() ?? 0;
+    final col = pnl >= 0 ? c.profit : c.loss;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Text('$year', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w800, fontSize: 15)),
+          const SizedBox(width: 10),
+          Text('$sells ${sells == 1 ? 'sell' : 'sells'}',
+              style: TextStyle(color: c.textMuted, fontSize: 12)),
+          const Spacer(),
+          Text(Money.format(pnl, 'KHR', signed: true),
+              style: TextStyle(color: col, fontWeight: FontWeight.w800, fontSize: 15)),
+        ],
+      ),
     );
   }
 

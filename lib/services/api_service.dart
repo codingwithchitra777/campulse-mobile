@@ -361,6 +361,14 @@ class ApiService {
     }
   }
 
+  /// Realised P/L grouped by the sell year:
+  /// `[{year, realisedPnl, sellCount, tickers:[{ticker, realisedPnl, sellCount}]}]`.
+  Future<List<dynamic>> getYearlyPnl() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/pnl/yearly'), headers: _headers);
+    if (response.statusCode == 200) return jsonDecode(response.body) as List<dynamic>;
+    throw Exception('Failed to load yearly P/L');
+  }
+
   // ── AI / rule coach (descriptive insights over the portfolio snapshot) ─
 
   /// Free rule-based insight (+ any cached AI pass). Never fails on billing.
