@@ -215,6 +215,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
   Widget _yearRow(AppColors c, dynamic y) {
     final year = y['year'];
+    final ccy = (y['currency'] as String?) ?? 'KHR';
     final pnl = (y['realisedPnl'] as num?) ?? 0;
     final sells = (y['sellCount'] as num?)?.toInt() ?? 0;
     final col = pnl >= 0 ? c.profit : c.loss;
@@ -223,11 +224,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       child: Row(
         children: [
           Text('$year', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w800, fontSize: 15)),
+          const SizedBox(width: 6),
+          Text('· $ccy', style: TextStyle(color: c.textMuted, fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(width: 10),
           Text('$sells ${sells == 1 ? 'sell' : 'sells'}',
               style: TextStyle(color: c.textMuted, fontSize: 12)),
           const Spacer(),
-          Text(Money.format(pnl, 'KHR', signed: true),
+          Text(Money.format(pnl, ccy, signed: true),
               style: TextStyle(color: col, fontWeight: FontWeight.w800, fontSize: 15)),
         ],
       ),
