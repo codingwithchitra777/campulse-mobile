@@ -226,6 +226,17 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
     final qtyOriginal = (buy['qtyOriginal'] as num? ?? 0).toInt();
     final price = (buy['price'] as num? ?? 0);
     final isOpen = qtyOpen > 0;
+
+    // Unrealised P/L on the still-open portion of this buy vs the current price.
+    final last = widget.lastPrice;
+    num? pnl;
+    double? pnlPct;
+    if (isOpen && last != null && price > 0) {
+      pnl = (last - price) * qtyOpen;
+      pnlPct = (last - price) / price * 100;
+    }
+    final pnlColor = (pnl ?? 0) >= 0 ? c.profit : c.loss;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.border.withValues(alpha: 0.6)))),
@@ -244,10 +255,21 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
                 style: TextStyle(fontSize: 12, color: c.textMuted)),
           ),
           Expanded(
-            flex: 2,
-            child: Text(nf.format(qtyOpen),
-                textAlign: TextAlign.end,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isOpen ? c.profit : c.textMuted)),
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(nf.format(qtyOpen),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isOpen ? c.profit : c.textMuted)),
+                if (pnl != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                      '${Money.format(pnl, _ccy, signed: true)} · ${pnlPct! >= 0 ? '+' : '−'}${pnlPct.abs().toStringAsFixed(1)}%',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: pnlColor)),
+                ],
+              ],
+            ),
           ),
         ],
       ),

@@ -405,11 +405,14 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                     children: [
                       Icon(totalPnl >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
                           size: 13, color: pnlColor),
-                      Text(
-                          pnlPct == null
-                              ? Money.format(totalPnl, ccy, signed: true)
-                              : '${totalPnl >= 0 ? '+' : '−'}${pnlPct.abs().toStringAsFixed(1)}%',
-                          style: TextStyle(color: pnlColor, fontSize: 13, fontWeight: FontWeight.w700)),
+                      Flexible(
+                        child: Text(
+                            pnlPct == null
+                                ? Money.format(totalPnl, ccy, signed: true)
+                                : '${Money.format(totalPnl, ccy, signed: true)} · ${totalPnl >= 0 ? '+' : '−'}${pnlPct.abs().toStringAsFixed(1)}%',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: pnlColor, fontSize: 13, fontWeight: FontWeight.w700)),
+                      ),
                     ],
                   ),
                 ],
