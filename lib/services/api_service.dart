@@ -320,6 +320,47 @@ class ApiService {
     return decoded as Map<String, dynamic>;
   }
 
+  /// Edit a BUY trade (price / qty / commission / date / ticker). The server
+  /// only allows editing an unmatched BUY; a 409 detail is surfaced verbatim.
+  /// `commission` omitted = server recomputes it; `orderDate` (YYYY-MM-DD)
+  /// omitted = keep the current date.
+  Future<Map<String, dynamic>> updateTrade(
+    String tradeId, {
+    required String ticker,
+    required num price,
+    required num qty,
+    num? commission,
+    String? orderDate,
+  }) async {
+    final body = <String, dynamic>{
+      'ticker': ticker,
+      'price': price,
+      'qty': qty,
+      if (commission != null) 'commission': commission,
+      if (orderDate != null) 'orderDate': orderDate,
+    };
+    final response = await http.patch(
+      Uri.parse('$baseUrl/api/trades/$tradeId'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(decoded['detail'] ?? 'Failed to update trade');
+    }
+    return decoded as Map<String, dynamic>;
+  }
+
+  /// Delete a trade. A SELL frees the lots it matched; a BUY that has already
+  /// been sold from returns 409 (surfaced as the exception message).
+  Future<void> deleteTrade(String tradeId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/api/trades/$tradeId'), headers: _headers);
+    if (response.statusCode >= 400) {
+      final decoded = jsonDecode(response.body);
+      throw Exception(decoded['detail'] ?? 'Failed to delete trade');
+    }
+  }
+
   // ── AI / rule coach (descriptive insights over the portfolio snapshot) ─
 
   /// Free rule-based insight (+ any cached AI pass). Never fails on billing.

@@ -134,7 +134,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       dateStr = (t['orderDate'] ?? '').toString();
     }
 
-    return AppCard(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showTradeActions(context, t, l10n),
+      child: AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -176,6 +179,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       style: TextStyle(color: c.textMuted, fontSize: 12)),
                 ],
               ),
+              const SizedBox(width: AppSpacing.sm),
+              Icon(Icons.more_vert_rounded, size: 18, color: c.textMuted),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -194,10 +199,244 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
   String _qty(num q) => q == q.roundToDouble() ? q.toInt().toString() : q.toString();
+
+  // ── Edit / delete actions (mirrors the web History) ───────────────────
+  void _showTradeActions(BuildContext context, dynamic t, AppLocalizations l10n) {
+    final c = context.colors;
+    final isBuy = t['side'] == 'BUY';
+    final ticker = (t['ticker'] ?? '').toString();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: c.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ListTile(
+              leading: Icon(isBuy ? Icons.south_west_rounded : Icons.north_east_rounded,
+                  color: isBuy ? c.profit : c.loss),
+              title: Text('$ticker · #${t['seq']}',
+                  style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w800)),
+              subtitle: Text(isBuy ? l10n.sideBuy : l10n.sideSell, style: TextStyle(color: c.textMuted)),
+            ),
+            Divider(height: 1, color: c.border.withValues(alpha: 0.6)),
+            if (isBuy)
+              ListTile(
+                leading: Icon(Icons.edit_rounded, color: c.primary),
+                title: Text('Edit trade', style: TextStyle(color: c.textPrimary)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openEditSheet(context, t, l10n);
+                },
+              ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: c.loss),
+              title: Text('Delete trade', style: TextStyle(color: c.loss)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(context, t);
+              },
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, dynamic t) async {
+    final c = context.colors;
+    final ticker = (t['ticker'] ?? '').toString();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: c.surface,
+        title: Text('Delete trade?', style: TextStyle(color: c.textPrimary)),
+        content: Text('Delete this $ticker #${t['seq']} trade? This can\'t be undone.',
+            style: TextStyle(color: c.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: c.textMuted)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: c.loss),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _api.deleteTrade((t['tradeId'] ?? '').toString());
+      _toast('Trade deleted', success: true);
+      _loadTrades();
+    } catch (e) {
+      _toast(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  void _openEditSheet(BuildContext context, dynamic t, AppLocalizations l10n) {
+    final c = context.colors;
+    final ccy = (t['currency'] as String?) ?? 'KHR';
+    final tickerCtl = TextEditingController(text: (t['ticker'] ?? '').toString());
+    final priceCtl = TextEditingController(text: '${t['price'] ?? ''}');
+    final qtyCtl = TextEditingController(text: _qty((t['qty'] as num?) ?? 0));
+    final commCtl = TextEditingController(
+        text: (t['commission'] == null || (t['commission'] as num) == 0) ? '' : '${t['commission']}');
+    DateTime date;
+    try {
+      date = DateTime.parse(t['orderDate']);
+    } catch (_) {
+      date = DateTime.now();
+    }
+    bool saving = false;
+    String? err;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: c.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Future<void> save() async {
+            final price = num.tryParse(priceCtl.text.trim());
+            final qty = num.tryParse(qtyCtl.text.trim());
+            if (tickerCtl.text.trim().isEmpty || price == null || price <= 0 || qty == null || qty <= 0) {
+              setSheet(() => err = 'Enter a ticker and a positive price and quantity.');
+              return;
+            }
+            final comm = commCtl.text.trim().isEmpty ? null : num.tryParse(commCtl.text.trim());
+            setSheet(() {
+              saving = true;
+              err = null;
+            });
+            try {
+              await _api.updateTrade(
+                (t['tradeId'] ?? '').toString(),
+                ticker: tickerCtl.text.trim().toUpperCase(),
+                price: price,
+                qty: qty,
+                commission: comm,
+                orderDate: DateFormat('yyyy-MM-dd').format(date),
+              );
+              if (mounted) Navigator.pop(ctx);
+              _toast('Trade updated', success: true);
+              _loadTrades();
+            } catch (e) {
+              setSheet(() {
+                saving = false;
+                err = e.toString().replaceFirst('Exception: ', '');
+              });
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg,
+                AppSpacing.lg + MediaQuery.of(ctx).viewInsets.bottom + MediaQuery.of(ctx).padding.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text('Edit trade',
+                    style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: AppSpacing.md),
+                _editField(c, 'Ticker', tickerCtl, textCap: true),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(child: _editField(c, 'Price ($ccy)', priceCtl, number: true)),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(child: _editField(c, 'Quantity', qtyCtl, number: true)),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _editField(c, 'Commission (optional)', commCtl, number: true),
+                const SizedBox(height: AppSpacing.md),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: date,
+                      firstDate: DateTime(2015),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) setSheet(() => date = picked);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Order date', border: OutlineInputBorder()),
+                    child: Text(DateFormat('d MMM yyyy').format(date), style: TextStyle(color: c.textPrimary)),
+                  ),
+                ),
+                if (err != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(err!, style: TextStyle(color: c.loss, fontSize: 13)),
+                ],
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: c.primary),
+                    onPressed: saving ? null : save,
+                    child: saving
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Save changes'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _editField(AppColors c, String label, TextEditingController ctl,
+      {bool number = false, bool textCap = false}) {
+    return TextField(
+      controller: ctl,
+      keyboardType: number ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      textCapitalization: textCap ? TextCapitalization.characters : TextCapitalization.none,
+      style: TextStyle(color: c.textPrimary),
+      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+    );
+  }
+
+  void _toast(String msg, {bool success = false}) {
+    if (!mounted) return;
+    final c = context.colors;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: success ? c.profit : c.surfaceAlt),
+    );
+  }
 
   /// Ticker coin (market-tinted gradient disc with initials) plus a small
   /// buy/sell arrow badge in the bottom-right corner — matches the portfolio
