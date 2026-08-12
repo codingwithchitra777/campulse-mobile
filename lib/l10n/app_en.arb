@@ -2,11 +2,11 @@
   "@@locale": "en",
 
   "appTitle": "CamboPulse",
-  "navDashboard": "Home",
+  "navDashboard": "Markets",
   "navPortfolio": "Portfolio",
   "navRecord": "Record",
   "navLedger": "Ledger",
-  "titleDashboard": "Home",
+  "titleDashboard": "Markets",
   "titlePortfolio": "Portfolio",
   "titleAddTrade": "Add Trade",
   "titleTradeLedger": "Trade Ledger",
@@ -35,7 +35,7 @@
   "csxMarket": "CSX",
   "goldMarket": "Gold",
   "usaMarket": "USA",
-  "errorLoadingDashboard": "Error loading dashboard: {error}",
+  "errorLoadingDashboard": "Error loading markets: {error}",
   "@errorLoadingDashboard": {
     "placeholders": { "error": { "type": "String" } }
   },

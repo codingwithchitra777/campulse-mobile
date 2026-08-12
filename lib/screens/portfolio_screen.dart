@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
@@ -10,6 +12,27 @@ import '../widgets/skeleton.dart';
 import 'position_details_screen.dart';
 
 enum _Sort { value, pnl, name }
+
+/// Date-range filter for the performance chart (mirrors the web: 1W…ALL).
+enum _ChartRange {
+  w1('1W', 7),
+  m1('1M', 30),
+  m3('3M', 90),
+  m6('6M', 180),
+  all('ALL', null);
+
+  const _ChartRange(this.label, this.days);
+  final String label;
+  final int? days;
+
+  String get plLabel => switch (this) {
+        _ChartRange.w1 => 'Past week',
+        _ChartRange.m1 => 'Past month',
+        _ChartRange.m3 => 'Past 3 months',
+        _ChartRange.m6 => 'Past 6 months',
+        _ChartRange.all => 'All time',
+      };
+}
 
 class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
@@ -23,8 +46,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   bool _loading = false;
   List<dynamic> _portfolio = [];
   List<dynamic> _yearlyPnl = [];
+  Map<String, dynamic>? _chartsData;
   String _query = '';
   _Sort _sort = _Sort.value;
+  String _valuationMode = 'BID';
+  _ChartRange _chartRange = _ChartRange.all;
 
   @override
   void initState() {
@@ -35,7 +61,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   Future<void> _loadPortfolio() async {
     setState(() => _loading = true);
     try {
-      final portfolio = await _api.getPortfolio();
+      final portfolio = await _api.getPortfolio(valuationMode: _valuationMode);
       // Attach a price sparkline per holding (parallel; empty for symbols
       // without snapshot history, e.g. US equities).
       final spots = await Future.wait(portfolio.map((h) async {
@@ -58,9 +84,15 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       try {
         yearly = await _api.getYearlyPnl();
       } catch (_) {}
+      // Equity/invested timeline (best-effort — KHR-centric for now, like the web).
+      Map<String, dynamic>? charts;
+      try {
+        charts = await _api.getChartsTimeline(null, 'KHR', _valuationMode);
+      } catch (_) {}
       setState(() {
         _portfolio = portfolio;
         _yearlyPnl = yearly;
+        _chartsData = charts;
         _loading = false;
       });
     } catch (e) {
@@ -143,7 +175,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     return ListView(
       padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, context.navBarClearance),
       children: [
+        Align(alignment: Alignment.centerRight, child: _valuationToggle(context)),
+        const SizedBox(height: AppSpacing.md),
         ...summaries,
+        const SizedBox(height: AppSpacing.sm),
+        SectionHeader(title: l10n.portfolioPerformance),
+        AppCard(child: _buildEquityChart(context, 'KHR')),
         const SizedBox(height: AppSpacing.lg),
         _searchAndSort(context),
         const SizedBox(height: AppSpacing.md),
@@ -232,6 +269,331 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           const Spacer(),
           Text(Money.format(pnl, ccy, signed: true),
               style: TextStyle(color: col, fontWeight: FontWeight.w800, fontSize: 15)),
+        ],
+      ),
+    );
+  }
+
+  // ── Valuation toggle (BID/ASK) ──────────────────────────────────────
+  Widget _valuationToggle(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    Widget seg(String label, bool selected, VoidCallback onTap) {
+      final c = context.colors;
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? c.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? c.onPrimary : c.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: c.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+        border: Border.all(color: c.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          seg(l10n.valuationBid, _valuationMode == 'BID', () {
+            if (_valuationMode != 'BID') {
+              setState(() => _valuationMode = 'BID');
+              _loadPortfolio();
+            }
+          }),
+          seg(l10n.valuationAsk, _valuationMode == 'ASK', () {
+            if (_valuationMode != 'ASK') {
+              setState(() => _valuationMode = 'ASK');
+              _loadPortfolio();
+            }
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ── Equity performance chart ────────────────────────────────────────
+
+  /// Aligned equity (market value) + invested (cost basis) series on a shared
+  /// date axis, with the per-point dates for tooltips. `invested` is
+  /// forward-filled from the (sparser, per-trade-date) investment series onto
+  /// the (per-snapshot-day) equity dates.
+  ({List<FlSpot> value, List<FlSpot> invested, List<String> dates}) _equitySeries() {
+    final equity = _chartsData?['equity'];
+    if (equity is! List || equity.isEmpty) {
+      return (value: const [], invested: const [], dates: const []);
+    }
+    final investment = (_chartsData?['investment'] as List?) ?? const [];
+    final days = _chartRange.days;
+    final cutoff = days == null ? null : DateTime.now().subtract(Duration(days: days));
+
+    final value = <FlSpot>[];
+    final invested = <FlSpot>[];
+    final dates = <String>[];
+    int inv = 0;
+    double lastInvested = 0;
+    int x = 0;
+    for (int i = 0; i < equity.length; i++) {
+      final date = (equity[i]['date'] ?? '').toString();
+      while (inv < investment.length &&
+          (investment[inv]['date'] ?? '').toString().compareTo(date) <= 0) {
+        lastInvested = (investment[inv]['invested'] as num?)?.toDouble() ?? lastInvested;
+        inv++;
+      }
+      if (cutoff != null) {
+        final d = DateTime.tryParse(date);
+        if (d != null && d.isBefore(cutoff)) continue;
+      }
+      final val = (equity[i]['value'] as num?)?.toDouble() ?? 0;
+      value.add(FlSpot(x.toDouble(), val));
+      invested.add(FlSpot(x.toDouble(), lastInvested));
+      dates.add(date);
+      x++;
+    }
+    return (value: value, invested: invested, dates: dates);
+  }
+
+  Widget _buildEquityChart(BuildContext context, String ccy) {
+    final c = context.colors;
+    final equityRaw = _chartsData?['equity'];
+    final hasAny = equityRaw is List && equityRaw.isNotEmpty;
+    if (!hasAny) {
+      return SizedBox(height: 200, child: _emptyChart(context, 'Record a trade to see your equity curve'));
+    }
+    final series = _equitySeries();
+    final hasRange = series.value.isNotEmpty;
+
+    final currentValue = hasRange ? series.value.last.y : 0.0;
+    final startValue = hasRange ? series.value.first.y : 0.0;
+    final change = currentValue - startValue;
+    final pct = startValue != 0 ? (change / startValue) * 100 : 0.0;
+    final plColor = change >= 0 ? c.profit : c.loss;
+    final valueColor = hasRange && change >= 0 ? c.profit : c.loss;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_chartRange.plLabel,
+                    style: TextStyle(color: c.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(hasRange ? Money.format(currentValue, ccy) : '—',
+                    style: TextStyle(color: c.textPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            const Spacer(),
+            if (hasRange)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(change >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                          size: 15, color: plColor),
+                      const SizedBox(width: 2),
+                      Text(Money.format(change, ccy, signed: true),
+                          style: TextStyle(color: plColor, fontSize: 15, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text('${change >= 0 ? '+' : '−'}${pct.abs().toStringAsFixed(2)}%',
+                      style: TextStyle(color: plColor, fontSize: 12, fontWeight: FontWeight.w700)),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            _legendDot(valueColor),
+            const SizedBox(width: 5),
+            Text('Value', style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(width: AppSpacing.md),
+            _legendDot(c.textMuted),
+            const SizedBox(width: 5),
+            Text('Invested', style: TextStyle(color: c.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _rangeSelector(c),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 170,
+          child: hasRange
+              ? _equityLineChart(context, series, valueColor, ccy)
+              : _emptyChart(context, 'No data in this range'),
+        ),
+      ],
+    );
+  }
+
+  Widget _rangeSelector(AppColors c) {
+    return Row(
+      children: [
+        for (final r in _ChartRange.values) ...[
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _chartRange = r),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _chartRange == r ? c.primary : c.surfaceAlt,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  border: Border.all(color: _chartRange == r ? c.primary : c.border),
+                ),
+                child: Text(r.label,
+                    style: TextStyle(
+                      color: _chartRange == r ? c.onPrimary : c.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    )),
+              ),
+            ),
+          ),
+          if (r != _ChartRange.values.last) const SizedBox(width: 6),
+        ],
+      ],
+    );
+  }
+
+  Widget _legendDot(Color color) =>
+      Container(width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+
+  Widget _equityLineChart(BuildContext context,
+      ({List<FlSpot> value, List<FlSpot> invested, List<String> dates}) series, Color valueColor, String ccy) {
+    final c = context.colors;
+    final all = [...series.value, ...series.invested];
+    double minY = all.map((s) => s.y).reduce((a, b) => a < b ? a : b);
+    double maxY = all.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final pad = (maxY - minY) * 0.15;
+    minY = (minY - (pad == 0 ? 10 : pad)).clamp(0, double.infinity).toDouble();
+    maxY += pad == 0 ? 10 : pad;
+    final interval = (maxY - minY) <= 0 ? 1.0 : (maxY - minY) / 3;
+
+    String tooltipDate(int i) {
+      if (i < 0 || i >= series.dates.length) return '';
+      final d = DateTime.tryParse(series.dates[i]);
+      return d == null ? series.dates[i] : DateFormat('d MMM yyyy').format(d);
+    }
+
+    return LineChart(
+      LineChartData(
+        minX: 0,
+        maxX: (series.value.length - 1).toDouble(),
+        minY: minY,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: interval,
+          getDrawingHorizontalLine: (v) => FlLine(color: c.border.withValues(alpha: 0.5), strokeWidth: 1),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 48,
+              interval: interval,
+              getTitlesWidget: (value, meta) => Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Text(Money.compact(value, ccy),
+                    style: TextStyle(color: c.textMuted, fontSize: 9), textAlign: TextAlign.left),
+              ),
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(
+          enabled: true,
+          getTouchedSpotIndicator: (barData, indexes) => indexes
+              .map((i) => TouchedSpotIndicatorData(
+                    FlLine(color: c.textMuted.withValues(alpha: 0.4), strokeWidth: 1),
+                    FlDotData(show: true, getDotPainter: (s, p, b, ix) =>
+                        FlDotCirclePainter(radius: 3.5, color: barData.color ?? valueColor, strokeWidth: 0)),
+                  ))
+              .toList(),
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => c.surfaceAlt,
+            getTooltipItems: (spots) => [
+              for (int j = 0; j < spots.length; j++)
+                LineTooltipItem(
+                  '${spots[j].barIndex == 0 ? 'Value' : 'Invested'}  ${Money.compact(spots[j].y, ccy)}'
+                  '${j == 0 ? '\n${tooltipDate(spots[j].spotIndex)}' : ''}',
+                  TextStyle(
+                    color: spots[j].barIndex == 0 ? valueColor : c.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: series.value,
+            isCurved: true,
+            color: valueColor,
+            barWidth: 2.5,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [valueColor.withValues(alpha: 0.26), valueColor.withValues(alpha: 0.0)],
+              ),
+            ),
+          ),
+          LineChartBarData(
+            spots: series.invested,
+            isCurved: true,
+            color: c.textMuted,
+            barWidth: 1.5,
+            isStrokeCapRound: true,
+            dashArray: const [5, 4],
+            dotData: const FlDotData(show: false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyChart(BuildContext context, String msg) {
+    final c = context.colors;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.show_chart_rounded, size: 32, color: c.textMuted),
+          const SizedBox(height: AppSpacing.sm),
+          Text(msg, style: TextStyle(color: c.textMuted, fontSize: 13), textAlign: TextAlign.center),
         ],
       ),
     );

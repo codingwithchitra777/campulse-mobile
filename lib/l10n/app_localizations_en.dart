@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'CamboPulse';
 
   @override
-  String get navDashboard => 'Home';
+  String get navDashboard => 'Markets';
 
   @override
   String get navPortfolio => 'Portfolio';
@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navLedger => 'Ledger';
 
   @override
-  String get titleDashboard => 'Home';
+  String get titleDashboard => 'Markets';
 
   @override
   String get titlePortfolio => 'Portfolio';
@@ -109,7 +109,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String errorLoadingDashboard(String error) {
-    return 'Error loading dashboard: $error';
+    return 'Error loading markets: $error';
   }
 
   @override

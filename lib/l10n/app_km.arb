@@ -2,11 +2,11 @@
   "@@locale": "km",
 
   "appTitle": "CamboPulse",
-  "navDashboard": "ទំព័រដើម",
+  "navDashboard": "ទីផ្សារ",
   "navPortfolio": "ផលប័ត្រ",
   "navRecord": "កត់ត្រា",
   "navLedger": "បញ្ជី",
-  "titleDashboard": "ទំព័រដើម",
+  "titleDashboard": "ទីផ្សារ",
   "titlePortfolio": "ផលប័ត្រ",
   "titleAddTrade": "កត់ត្រាការជួញដូរ",
   "titleTradeLedger": "បញ្ជីការជួញដូរ",
@@ -35,7 +35,7 @@
   "csxMarket": "CSX",
   "goldMarket": "មាស",
   "usaMarket": "អាមេរិក",
-  "errorLoadingDashboard": "កំហុសក្នុងការផ្ទុកទិន្នន័យ៖ {error}",
+  "errorLoadingDashboard": "កំហុសក្នុងការផ្ទុកទិន្នន័យទីផ្សារ៖ {error}",
   "@errorLoadingDashboard": {
     "placeholders": { "error": { "type": "String" } }
   },

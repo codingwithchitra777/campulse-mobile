@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/markets_screen.dart';
 import 'screens/portfolio_screen.dart';
 import 'screens/add_trade_screen.dart';
 import 'screens/history_screen.dart';
@@ -106,7 +106,7 @@ class _MainLayoutState extends State<MainLayout> {
         Widget guarded(Widget page) => isGuest ? const LoginScreen() : page;
 
         final screens = <Widget>[
-          DashboardScreen(key: ValueKey('dash_$userKey'), onRefresh: () {}, onNavigate: _go),
+          MarketsScreen(key: ValueKey('markets_$userKey'), onNavigate: _go),
           guarded(PortfolioScreen(key: ValueKey('port_$userKey'))),
           guarded(AddTradeScreen(
             key: ValueKey('add_$userKey'),
@@ -200,8 +200,8 @@ class _FloatingNav extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _NavItem(
-                    icon: Icons.dashboard_outlined,
-                    activeIcon: Icons.dashboard_rounded,
+                    icon: Icons.show_chart_rounded,
+                    activeIcon: Icons.show_chart_rounded,
                     label: dashboardLabel,
                     selected: currentIndex == 0,
                     onTap: () => onTap(0),

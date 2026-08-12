@@ -12,7 +12,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get appTitle => 'CamboPulse';
 
   @override
-  String get navDashboard => 'ទំព័រដើម';
+  String get navDashboard => 'ទីផ្សារ';
 
   @override
   String get navPortfolio => 'ផលប័ត្រ';
@@ -24,7 +24,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get navLedger => 'បញ្ជី';
 
   @override
-  String get titleDashboard => 'ទំព័រដើម';
+  String get titleDashboard => 'ទីផ្សារ';
 
   @override
   String get titlePortfolio => 'ផលប័ត្រ';
@@ -109,7 +109,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String errorLoadingDashboard(String error) {
-    return 'កំហុសក្នុងការផ្ទុកទិន្នន័យ៖ $error';
+    return 'កំហុសក្នុងការផ្ទុកទិន្នន័យទីផ្សារ៖ $error';
   }
 
   @override

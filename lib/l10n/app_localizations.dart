@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @navDashboard.
   ///
   /// In en, this message translates to:
-  /// **'Home'**
+  /// **'Markets'**
   String get navDashboard;
 
   /// No description provided for @navPortfolio.
@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @titleDashboard.
   ///
   /// In en, this message translates to:
-  /// **'Home'**
+  /// **'Markets'**
   String get titleDashboard;
 
   /// No description provided for @titlePortfolio.
@@ -299,7 +299,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorLoadingDashboard.
   ///
   /// In en, this message translates to:
-  /// **'Error loading dashboard: {error}'**
+  /// **'Error loading markets: {error}'**
   String errorLoadingDashboard(String error);
 
   /// No description provided for @priceLabel.
