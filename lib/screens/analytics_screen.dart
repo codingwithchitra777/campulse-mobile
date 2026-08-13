@@ -12,7 +12,11 @@ import '../widgets/skeleton.dart';
 /// endpoints (no dedicated backend). Everything is grouped per currency so KHR
 /// and USD figures are never blended.
 class AnalyticsScreen extends StatefulWidget {
-  const AnalyticsScreen({super.key});
+  /// When true, renders as a bottom-nav tab body (no Scaffold/AppBar — the
+  /// host MainLayout supplies those). The pushed/full-screen variant (from the
+  /// drawer) keeps its own chrome.
+  final bool embedded;
+  const AnalyticsScreen({super.key, this.embedded = false});
 
   @override
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
@@ -141,17 +145,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Analytics')),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _loading
-            ? _skeleton()
-            : (_totalTrades == 0 && _byCcy.isEmpty)
-                ? _empty(c)
-                : _content(c),
-      ),
+    final body = RefreshIndicator(
+      onRefresh: _load,
+      child: _loading
+          ? _skeleton()
+          : (_totalTrades == 0 && _byCcy.isEmpty)
+              ? _empty(c)
+              : _content(c),
     );
+
+    if (widget.embedded) return body;
+    return Scaffold(appBar: AppBar(title: const Text('Analytics')), body: body);
   }
 
   Widget _skeleton() => ListView(

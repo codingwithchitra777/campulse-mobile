@@ -9,7 +9,11 @@ import '../widgets/section_header.dart';
 import '../widgets/skeleton.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  /// When true, renders as a bottom-nav tab body (no Scaffold/AppBar — the
+  /// host MainLayout supplies those). The pushed/full-screen variant (from the
+  /// drawer) keeps its own chrome.
+  final bool embedded;
+  const HistoryScreen({super.key, this.embedded = false});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -65,7 +69,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return RefreshIndicator(
+    final body = RefreshIndicator(
       onRefresh: _loadTrades,
       child: _loading
           ? ListView(
@@ -84,6 +88,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ? _emptyState(context, l10n)
               : _buildList(context, l10n),
     );
+
+    if (widget.embedded) return body;
+    return Scaffold(appBar: AppBar(title: Text(l10n.titleTradeLedger)), body: body);
   }
 
   Widget _buildList(BuildContext context, AppLocalizations l10n) {

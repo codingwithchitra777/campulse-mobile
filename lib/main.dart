@@ -5,7 +5,7 @@ import 'l10n/app_localizations.dart';
 import 'screens/markets_screen.dart';
 import 'screens/portfolio_screen.dart';
 import 'screens/add_trade_screen.dart';
-import 'screens/history_screen.dart';
+import 'screens/analytics_screen.dart';
 import 'screens/watchlist_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
@@ -113,7 +113,7 @@ class _MainLayoutState extends State<MainLayout> {
             onTradeAdded: () => _go(0),
           )),
           guarded(WatchlistScreen(key: ValueKey('watch_$userKey'), embedded: true)),
-          guarded(HistoryScreen(key: ValueKey('hist_$userKey'))),
+          guarded(AnalyticsScreen(key: ValueKey('analytics_$userKey'), embedded: true)),
         ];
 
         final titles = [
@@ -121,7 +121,7 @@ class _MainLayoutState extends State<MainLayout> {
           l10n.titlePortfolio,
           l10n.titleAddTrade,
           'Watchlist',
-          'History',
+          'Analytics',
         ];
 
         return Scaffold(
@@ -154,8 +154,8 @@ class _MainLayoutState extends State<MainLayout> {
   }
 }
 
-/// The glassy floating bottom nav: Dashboard · Portfolio · [+ Record] · History
-/// · Account. Colors come from the active theme so it works in light & dark.
+/// The glassy floating bottom nav: Markets · Portfolio · [+ Record] · Watchlist
+/// · Analytics. Colors come from the active theme so it works in light & dark.
 class _FloatingNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -222,9 +222,9 @@ class _FloatingNav extends StatelessWidget {
                     onTap: () => onTap(3),
                   ),
                   _NavItem(
-                    icon: Icons.receipt_long_outlined,
-                    activeIcon: Icons.receipt_long_rounded,
-                    label: 'History',
+                    icon: Icons.query_stats_outlined,
+                    activeIcon: Icons.query_stats_rounded,
+                    label: 'Analytics',
                     selected: currentIndex == 4,
                     onTap: () => onTap(4),
                   ),

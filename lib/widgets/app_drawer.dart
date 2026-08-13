@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/ai_coach_screen.dart';
 import '../screens/alerts_screen.dart';
-import '../screens/analytics_screen.dart';
 import '../screens/connected_accounts_screen.dart';
+import '../screens/history_screen.dart';
 import '../screens/journal_screen.dart';
 import '../screens/loans_screen.dart';
 import '../screens/watchlist_screen.dart';
@@ -121,11 +121,11 @@ class AppDrawer extends StatelessWidget {
                   child: Column(
                     children: [
                       HubTile(
-                        icon: Icons.query_stats_rounded,
+                        icon: Icons.receipt_long_rounded,
                         iconColor: c.primary,
-                        title: 'Analytics',
-                        subtitle: 'Win rate, P/L split, activity stats',
-                        onTap: () => _push(context, const AnalyticsScreen()),
+                        title: 'History',
+                        subtitle: 'Your full trade ledger',
+                        onTap: () => _push(context, const HistoryScreen()),
                       ),
                       _divider(c),
                       HubTile(
