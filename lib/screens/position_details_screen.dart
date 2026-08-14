@@ -81,15 +81,16 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
   Widget _content(BuildContext context, AppLocalizations l10n, AppColors c) {
     final nf = NumberFormat('#,###');
     final realised = (_details!['realisedPnl'] as num?) ?? 0;
+    // buys is already open lots only (the backend excludes fully-matched
+    // ones) — the single source for both the row list below and this hero
+    // P/L calc, no separate "remaining lots" list needed.
     final buys = (_details!['buys'] as List?) ?? const [];
     final sells = (_details!['sells'] as List?) ?? const [];
-    final lots = (_details!['remainingLots'] as List?) ?? const [];
 
-    // Open-position (unrealised) P/L from the remaining lots vs current price.
     num openQty = 0, costBasis = 0;
-    for (final lot in lots) {
-      final q = (lot['qtyOpen'] as num? ?? 0);
-      final p = (lot['price'] as num? ?? 0);
+    for (final b in buys) {
+      final q = (b['qtyOpen'] as num? ?? 0);
+      final p = (b['price'] as num? ?? 0);
       openQty += q;
       costBasis += p * q;
     }
@@ -140,21 +141,6 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
               ? _empty(c, l10n.noSellOrders)
               : Column(children: [for (final s in sells) _sellOrderRow(c, l10n, nf, s)]),
         ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // Remaining buy lots
-        _sectionTitle(c, l10n.buyLotsAllocation, c.textPrimary),
-        const SizedBox(height: AppSpacing.sm),
-        if (lots.isEmpty)
-          AppCard(child: Center(child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            child: Text(l10n.noOpenLots, style: TextStyle(color: c.textMuted)),
-          )))
-        else
-          for (final lot in lots) ...[
-            _lotCard(c, l10n, nf, lot),
-            const SizedBox(height: AppSpacing.md),
-          ],
       ],
     );
   }
@@ -326,118 +312,4 @@ class _PositionDetailsScreenState extends State<PositionDetailsScreen> {
     );
   }
 
-  Widget _lotCard(AppColors c, AppLocalizations l10n, NumberFormat nf, dynamic lot) {
-    final qtyOpen = (lot['qtyOpen'] as num? ?? 0).toInt();
-    final qtyOriginal = (lot['qtyOriginal'] as num? ?? qtyOpen).toInt();
-    final price = (lot['price'] as num? ?? 0);
-    final isOpen = qtyOpen > 0;
-
-    // Per-lot change vs the current price (passed from the portfolio card).
-    final last = widget.lastPrice;
-    num? change;
-    double? changePct;
-    if (last != null && price > 0) {
-      change = (last - price) * qtyOpen;
-      changePct = (last - price) / price * 100;
-    }
-    final changeColor = (change ?? 0) >= 0 ? c.profit : c.loss;
-
-    String dateStr = '';
-    try {
-      dateStr = DateFormat.yMMMd().format(DateTime.parse(lot['orderDate']));
-    } catch (_) {
-      dateStr = (lot['orderDate'] ?? '').toString();
-    }
-
-    return AppCard(
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: c.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                ),
-                child: Text(l10n.seqLabel('${lot['seq']}'),
-                    style: TextStyle(color: c.primary, fontWeight: FontWeight.w700, fontSize: 12)),
-              ),
-              Row(
-                children: [
-                  Icon(Icons.fiber_manual_record, color: isOpen ? c.profit : c.textMuted, size: 12),
-                  const SizedBox(width: 4),
-                  Text(isOpen ? l10n.lotOpen : l10n.lotSold,
-                      style: TextStyle(color: isOpen ? c.profit : c.textMuted, fontWeight: FontWeight.w700, fontSize: 12)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.remainingQtyLabel, style: TextStyle(color: c.textMuted, fontSize: 11)),
-                  const SizedBox(height: 2),
-                  Text(l10n.qtyOverQty(nf.format(qtyOpen), nf.format(qtyOriginal)),
-                      style: TextStyle(fontWeight: FontWeight.w700, color: c.textPrimary)),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(l10n.pricePerShareColumn, style: TextStyle(color: c.textMuted, fontSize: 11)),
-                  const SizedBox(height: 2),
-                  Text(Money.format(price, _ccy),
-                      style: TextStyle(fontWeight: FontWeight.w700, color: c.textPrimary)),
-                ],
-              ),
-            ],
-          ),
-          if (change != null && changePct != null) ...[
-            Divider(color: c.border.withValues(alpha: 0.6), height: AppSpacing.xl),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Change (vs ${Money.format(last!, _ccy)})',
-                    style: TextStyle(color: c.textMuted, fontSize: 12)),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(change >= 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                        size: 14, color: changeColor),
-                    const SizedBox(width: 2),
-                    Text(Money.format(change, _ccy, signed: true),
-                        style: TextStyle(color: changeColor, fontSize: 13, fontWeight: FontWeight.w800)),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: changeColor.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                      ),
-                      child: Text('${change >= 0 ? '+' : '−'}${changePct.abs().toStringAsFixed(1)}%',
-                          style: TextStyle(color: changeColor, fontSize: 11, fontWeight: FontWeight.w700)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Icon(Icons.calendar_today, size: 12, color: c.textMuted),
-              const SizedBox(width: 6),
-              Text(dateStr, style: TextStyle(color: c.textMuted, fontSize: 12)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }

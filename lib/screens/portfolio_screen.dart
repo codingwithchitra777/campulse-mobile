@@ -51,6 +51,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   _Sort _sort = _Sort.value;
   String _valuationMode = 'BID';
   _ChartRange _chartRange = _ChartRange.all;
+  String? _expandedYearKey;
 
   @override
   void initState() {
@@ -256,19 +257,64 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final pnl = (y['realisedPnl'] as num?) ?? 0;
     final sells = (y['sellCount'] as num?)?.toInt() ?? 0;
     final col = pnl >= 0 ? c.profit : c.loss;
+    final key = '$year-$ccy';
+    final expanded = _expandedYearKey == key;
+    final tickers = (y['tickers'] as List?) ?? const [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expandedYearKey = expanded ? null : key),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Icon(expanded ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
+                    color: c.textMuted, size: 18),
+                const SizedBox(width: 2),
+                Text('$year', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w800, fontSize: 15)),
+                const SizedBox(width: 6),
+                Text('· $ccy', style: TextStyle(color: c.textMuted, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 10),
+                Text('$sells ${sells == 1 ? 'sell' : 'sells'}',
+                    style: TextStyle(color: c.textMuted, fontSize: 12)),
+                const Spacer(),
+                Text(Money.format(pnl, ccy, signed: true),
+                    style: TextStyle(color: col, fontWeight: FontWeight.w800, fontSize: 15)),
+              ],
+            ),
+          ),
+        ),
+        if (expanded)
+          Padding(
+            padding: const EdgeInsets.only(left: 20, bottom: 10),
+            child: Column(
+              children: [
+                for (final tk in tickers) _yearTickerRow(c, tk, ccy),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _yearTickerRow(AppColors c, dynamic tk, String ccy) {
+    final ticker = (tk['ticker'] ?? '').toString();
+    final pnl = (tk['realisedPnl'] as num?) ?? 0;
+    final sells = (tk['sellCount'] as num?)?.toInt() ?? 0;
+    final col = pnl >= 0 ? c.profit : c.loss;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Text('$year', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w800, fontSize: 15)),
-          const SizedBox(width: 6),
-          Text('· $ccy', style: TextStyle(color: c.textMuted, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(width: 10),
+          Text(ticker, style: TextStyle(color: c.textSecondary, fontSize: 13, fontWeight: FontWeight.w700)),
+          const SizedBox(width: 8),
           Text('$sells ${sells == 1 ? 'sell' : 'sells'}',
-              style: TextStyle(color: c.textMuted, fontSize: 12)),
+              style: TextStyle(color: c.textMuted, fontSize: 11)),
           const Spacer(),
           Text(Money.format(pnl, ccy, signed: true),
-              style: TextStyle(color: col, fontWeight: FontWeight.w800, fontSize: 15)),
+              style: TextStyle(color: col, fontWeight: FontWeight.w700, fontSize: 13)),
         ],
       ),
     );
